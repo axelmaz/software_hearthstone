@@ -31,6 +31,6 @@
 
 
 (def m (create-game[{:deck ["Novice Engineer"]}]))
-(add-card-to-deck m "p2" "Nightblade")
-(get-player-id-in-turn m)
-(end-turn m "p1")
+(def n (add-card-to-deck m "p2" "Nightblade"))
+(get-player-id-in-turn n)
+(end-turn n "p1")
