@@ -22,10 +22,7 @@
     :mana-cost   5
     :type        :minion
     :set         :basic
-    :description "Battlecry: Deal 3 damage to the enemy hero."
-    :battlecry (fn []
-                 [state player-id]
-                 )}
+    :description "Battlecry: Deal 3 damage to the enemy hero."}
 
    "Novice Engineer"
    {:name        "Novice Engineer"
@@ -34,9 +31,7 @@
     :mana-cost   2
     :type        :minion
     :set         :basic
-    :description "Battlecry: Draw a card."
-    :battlecry (fn [state]
-                 )}
+    :description "Battlecry: Draw a card."}
 
    "Snake"
    {:name          "Snake"

@@ -344,6 +344,9 @@
           state
           cards))
 
+(defn draw-card
+  [])
+
 
 (defn create-game
   "Creates a game with the given deck, hand, minions (placed on the board), and heroes."

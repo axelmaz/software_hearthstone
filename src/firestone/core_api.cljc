@@ -1,7 +1,9 @@
 (ns firestone.core-api
   (:require [ysera.test :refer [is= error?]]
             [ysera.error :refer [error]]
-            [firestone.construct :refer [create-game
+            [firestone.construct :refer [add-card-to-deck
+                                         create-game
+                                         create-minion
                                          get-player-id-in-turn
                                          get-players]]))
 
@@ -26,3 +28,9 @@
                           "p2" "p1"}]
     (-> state
         (update :player-id-in-turn player-change-fn))))
+
+
+(def m (create-game[{:deck ["Novice Engineer"]}]))
+(add-card-to-deck m "p2" "Nightblade")
+(get-player-id-in-turn m)
+(end-turn m "p1")
