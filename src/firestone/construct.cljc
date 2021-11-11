@@ -1,6 +1,7 @@
 (ns firestone.construct
   (:require [ysera.test :refer [is is-not is= error?]]
-            [firestone.definitions :refer [get-definition]]))
+            [firestone.definitions :refer [get-definition]]
+            ))
 
 
 (defn create-hero
@@ -72,22 +73,26 @@
            (is= (create-empty-state [(create-hero "Jaina Proudmoore" :id "r")
                                      (create-hero "Thrall")])
                 {:player-id-in-turn             "p1"
-                 :players                       {"p1" {:id      "p1"
-                                                       :deck    []
-                                                       :hand    []
-                                                       :minions []
-                                                       :hero    {:name         "Jaina Proudmoore"
-                                                                 :id           "r"
-                                                                 :damage-taken 0
-                                                                 :entity-type  :hero}}
-                                                 "p2" {:id      "p2"
-                                                       :deck    []
-                                                       :hand    []
-                                                       :minions []
-                                                       :hero    {:name         "Thrall"
-                                                                 :id           "h2"
-                                                                 :damage-taken 0
-                                                                 :entity-type  :hero}}}
+                 :players                       {"p1" {:id       "p1"
+                                                       :mana     10
+                                                       :max-mana 10
+                                                       :deck     []
+                                                       :hand     []
+                                                       :minions  []
+                                                       :hero     {:name         "Jaina Proudmoore"
+                                                                  :id           "r"
+                                                                  :damage-taken 0
+                                                                  :entity-type  :hero}}
+                                                 "p2" {:id       "p2"
+                                                       :mana     10
+                                                       :max-mana 10
+                                                       :deck     []
+                                                       :hand     []
+                                                       :minions  []
+                                                       :hero     {:name         "Thrall"
+                                                                  :id           "h2"
+                                                                  :damage-taken 0
+                                                                  :entity-type  :hero}}}
                  :counter                       1
                  :minion-ids-summoned-this-turn []}))}
   ; Multiple arity of a function [https://clojure.org/guides/learn/functions#_multi_arity_functions]
@@ -101,13 +106,15 @@
      {:player-id-in-turn             "p1"
       :players                       (->> heroes
                                           (map-indexed (fn [index hero]
-                                                         {:id      (str "p" (inc index))
-                                                          :deck    []
-                                                          :hand    []
-                                                          :minions []
-                                                          :hero    (if (contains? hero :id)
-                                                                     hero
-                                                                     (assoc hero :id (str "h" (inc index))))}))
+                                                         {:id       (str "p" (inc index))
+                                                          :mana     10
+                                                          :max-mana 10
+                                                          :deck     []
+                                                          :hand     []
+                                                          :minions  []
+                                                          :hero     (if (contains? hero :id)
+                                                                      hero
+                                                                      (assoc hero :id (str "h" (inc index))))}))
                                           (reduce (fn [a v]
                                                     (assoc a (:id v) v))
                                                   {}))
@@ -344,9 +351,6 @@
           state
           cards))
 
-(defn draw-card
-  [])
-
 
 (defn create-game
   "Creates a game with the given deck, hand, minions (placed on the board), and heroes."
@@ -362,39 +366,44 @@
            ; This test is showing the state structure - otherwise avoid large assertions
            (is= (create-game [{:minions ["Nightblade"]
                                :deck    ["Novice Engineer"]
-                               :hand    ["Snake"]}
+                               :hand    ["Snake"]
+                               :mana    6}
                               {:hero "Thrall"}]
                              :player-id-in-turn "p2")
                 {:player-id-in-turn             "p2"
-                 :players                       {"p1" {:id      "p1"
-                                                       :deck    [{:entity-type :card
-                                                                  :id          "c3"
-                                                                  :name        "Novice Engineer"
-                                                                  :owner-id    "p1"}]
-                                                       :hand    [{:entity-type :card
-                                                                  :id          "c4"
-                                                                  :name        "Snake"
-                                                                  :owner-id    "p1"}]
-                                                       :minions [{:damage-taken                0
-                                                                  :attacks-performed-this-turn 0
-                                                                  :added-to-board-time-id      2
-                                                                  :entity-type                 :minion
-                                                                  :name                        "Nightblade"
-                                                                  :id                          "m1"
-                                                                  :position                    0
-                                                                  :owner-id                    "p1"}]
-                                                       :hero    {:name         "Jaina Proudmoore"
-                                                                 :id           "h1"
-                                                                 :entity-type  :hero
-                                                                 :damage-taken 0}}
-                                                 "p2" {:id      "p2"
-                                                       :deck    []
-                                                       :hand    []
-                                                       :minions []
-                                                       :hero    {:name         "Thrall"
-                                                                 :id           "h2"
-                                                                 :entity-type  :hero
-                                                                 :damage-taken 0}}}
+                 :players                       {"p1" {:id       "p1"
+                                                       :mana     6
+                                                       :max-mana 10
+                                                       :deck     [{:entity-type :card
+                                                                   :id          "c3"
+                                                                   :name        "Novice Engineer"
+                                                                   :owner-id    "p1"}]
+                                                       :hand     [{:entity-type :card
+                                                                   :id          "c4"
+                                                                   :name        "Snake"
+                                                                   :owner-id    "p1"}]
+                                                       :minions  [{:damage-taken                0
+                                                                   :attacks-performed-this-turn 0
+                                                                   :added-to-board-time-id      2
+                                                                   :entity-type                 :minion
+                                                                   :name                        "Nightblade"
+                                                                   :id                          "m1"
+                                                                   :position                    0
+                                                                   :owner-id                    "p1"}]
+                                                       :hero     {:name         "Jaina Proudmoore"
+                                                                  :id           "h1"
+                                                                  :entity-type  :hero
+                                                                  :damage-taken 0}}
+                                                 "p2" {:id       "p2"
+                                                       :mana     10
+                                                       :max-mana 10
+                                                       :deck     []
+                                                       :hand     []
+                                                       :minions  []
+                                                       :hero     {:name         "Thrall"
+                                                                  :id           "h2"
+                                                                  :entity-type  :hero
+                                                                  :damage-taken 0}}}
                  :counter                       5
                  :minion-ids-summoned-this-turn []}))}
   ([data & kvs]
@@ -414,8 +423,11 @@
                      (reduce (fn [state {player-id :player-id
                                          minions   :minions
                                          deck      :deck
-                                         hand      :hand}]
-                               (-> state
+                                         hand      :hand
+                                         mana      :mana}]
+                               (-> (if mana
+                                     (assoc-in state [:players player-id :mana] mana)
+                                     state)
                                    (add-minions-to-board player-id minions)
                                    (add-cards-to-deck player-id deck)
                                    (add-cards-to-hand player-id hand)))
@@ -533,3 +545,71 @@
                 ["n2" "n3"]))}
   [state & ids]
   (reduce remove-minion state ids))
+
+
+(defn remove-card-from-hand
+  {:test (fn []
+           (is= (as-> (create-game [{:hand [(create-card "Nightblade" :id "n1")
+                                            (create-card "Defender" :id "d")
+                                            (create-card "Nightblade" :id "n2")]}]) $
+                      (remove-card-from-hand $ "p1" "d")
+                      (get-hand $ "p1")
+                      (map :name $))
+                ["Nightblade" "Nightblade"]))}
+  [state player-id card-id]
+  (update-in state [:players player-id :hand]
+             (fn [hand]
+               (->> hand
+                    (remove (fn [{id :id}] (= id card-id)))))))
+
+(defn get-card-from-hand
+  {:test (fn []
+           (is= (-> (create-game [{:hand [(create-card "Defender" :id "d")]}])
+                    (get-card-from-hand "p1" "d")
+                    (:name))
+                "Defender"))}
+  [state player-id card-id]
+  (->> (get-hand state player-id)
+       (some (fn [{id :id :as card}] (when (= id card-id) card)))))
+
+(defn get-mana
+  [state player-id]
+  (get-in state [:players player-id :mana]))
+
+(defn enough-mana?
+  {:test (fn []
+           (is (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
+                                  :mana 9}])
+                   (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+           (is-not (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
+                                  :mana 2}])
+                   (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+
+           )}
+  [state player-id card]
+  (>= (get-mana state player-id) ((get-definition (card :name)):mana-cost)))
+
+(defn decrease-mana
+  {:test (fn []
+           (is= (-> (create-game [{:mana 9}])
+                    (decrease-mana "p1" 2)
+                    (get-mana "p1")
+                    )
+                7)
+           )
+   }
+  [state player-id decrease-number]
+  (update-in state [:players player-id :mana]
+             (fn [mana] (- mana decrease-number))))
+
+(defn decrease-mana-with-card
+  {:test (fn []
+           (is= (-> (create-game [{:mana 9}])
+                    (decrease-mana-with-card "p1" (create-card "Nightblade" :id "d"))
+                    (get-mana "p1")
+                    )
+                4)
+           )
+   }
+  [state player-id card]
+  (-> state (decrease-mana player-id ((get-definition (card :name)):mana-cost))))
