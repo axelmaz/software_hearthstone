@@ -8,6 +8,7 @@
                                          create-hero
                                          create-minion
                                          get-heroes
+                                         get-mana
                                          get-minion
                                          get-minions]]))
 
