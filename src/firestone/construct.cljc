@@ -574,7 +574,7 @@
   (update-in state [:players player-id :deck]
              (fn [deck]
                (->> deck
-                    (remove (fn [{id :id}] (= id card-id)))))))
+                    (into [] (remove (fn [{id :id}] (= id card-id))))))))
 
 (defn get-card-from-hand
   {:test (fn []
@@ -591,16 +591,20 @@
   (get-in state [:players player-id :mana]))
 
 (defn draw-card
-  ;  {:test (fn []
-  ;           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
-  ;                    (draw-card "p1")
-  ;                    (get-hand "p1")
-  ;                    (:name))
-  ;                "Nightblade"))}
+    {:test (fn []
+             (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                      (draw-card "p1")
+                      (get-card-from-hand "p1" "n1")
+                      (:name))
+                  "Nightblade")
+             (is= (-> (create-game)
+                     (draw-card "p1")
+                     (get-in [:players "p1" :hero :damage-taken]))
+                 1))}
   [state player-id]
-  (let [card (nth (get-deck state player-id) 0)]
-    (when (empty? (get-deck state player-id))
-      (update-in state [:players player-id :hero :damage-taken] inc))
-    (-> state
-        (remove-card-from-deck player-id (:id card))
-        (add-card-to-hand player-id card))))
+  (if (empty? (get-deck state player-id))
+    (update-in state [:players player-id :hero :damage-taken] inc)
+    (let [card (nth (get-deck state player-id) 0)]
+      (-> state
+          (remove-card-from-deck player-id (:id card))
+          (add-card-to-hand player-id card)))))

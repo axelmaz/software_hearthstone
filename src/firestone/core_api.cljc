@@ -1,9 +1,13 @@
 (ns firestone.core-api
   (:require [ysera.test :refer [is is= error?]]
             [ysera.error :refer [error]]
-            [firestone.construct :refer [create-card
+            [firestone.construct :refer [add-card-to-deck
+                                         add-card-to-hand
+                                         create-card
                                          create-game
+                                         draw-card
                                          get-card-from-hand
+                                         get-deck
                                          get-hand
                                          get-player-id-in-turn
                                          get-players
@@ -59,3 +63,22 @@
     ;  (error "Not enough mana."))
     (-> state
         (remove-card-from-hand player-id card-id))))
+
+;Test area
+(def m (create-game[{:deck ["Novice Engineer" "Defender"]}]))
+(def b (add-card-to-deck m "p2" "Nightblade"))
+(def n (add-card-to-hand b "p1" "Nightblade"))
+
+(get-player-id-in-turn n)
+(get-players n)
+(def v (draw-card n "p1"))
+(get-in (get-hand v "p1") [1 :name])
+(get-card-from-hand v "p1" "c1")
+((nth (get-deck v "p1") 0) :id)
+(not (get-player-id-in-turn n))
+(end-turn n "p1")
+
+(def m2 (create-game))
+(empty? (get-deck m2 "p1"))
+(get-in m2 [:players "p1" :hero :damage-taken])
+(draw-card m2 "p1")
