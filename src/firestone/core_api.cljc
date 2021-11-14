@@ -6,6 +6,7 @@
                                          add-minion-to-board
                                          create-card
                                          create-game
+                                         create-minion
                                          decrease-mana-with-card
                                          draw-card
                                          enough-mana?
@@ -13,11 +14,18 @@
                                          get-deck
                                          get-hand
                                          get-mana
+                                         get-minion
                                          get-minions
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
-                                         remove-card-from-hand]]))
+                                         remove-card-from-hand
+                                         update-minion]]
+            [firestone.definitions :refer [get-definition]]
+            [firestone.core :refer [get-attack
+                                    get-health
+                                    valid-attack?]]
+            ))
 
 (defn end-turn
   {:test (fn []
@@ -98,4 +106,54 @@
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
         (add-minion-to-board player-id card position))))
+
+(defn attack-minion
+  {:test (fn []
+           ;The target should loose health points
+           (is= (-> (create-game)
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                    (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                    (attack-minion "p1" "ne" "nb")
+                    (get-health "nb")
+                    )
+                3)
+           ;The attacker should loose health points
+           (is= (-> (create-game)
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                    (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                    (attack-minion "p1" "ne" "nb")
+                    (get-health "ne")
+                    )
+                -3)
+           ;The attack has to be valid
+           (error? (-> (create-game)
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                    (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                    (attack-minion "p2" "ne" "nb")
+                    )
+                   )
+           ;The attacker could not attack twice a tour
+           (error? (-> (create-game)
+                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                       (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                       (attack-minion "p1" "ne" "nb")
+                       (attack-minion "p1" "ne" "nb")
+                       )
+                   )
+           )}
+  [state player-id minion-attack-id minion-defense-id]
+  (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
+    (error "This attack is not possible"))
+  (let [value-attack-attack (get-attack state minion-attack-id)]
+    (let [value-attack-defense (get-attack state minion-defense-id)]
+      (-> state
+          (update-minion minion-defense-id :damage-taken value-attack-attack)
+          (update-minion minion-attack-id :damage-taken value-attack-defense)
+          (update-minion minion-attack-id :attacks-performed-this-turn 1)
+          )
+
+      )
+    )
+  )
+
 
