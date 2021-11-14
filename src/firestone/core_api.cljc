@@ -24,7 +24,8 @@
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [get-attack
                                     get-health
-                                    valid-attack?]]
+                                    valid-attack?
+                                    get-hero-id-from-player-id]]
             ))
 
 (defn end-turn
@@ -155,5 +156,22 @@
       )
     )
   )
+(defn attack-hero
+  {:test
+   (fn []
+     (is= (-> (create-game)
+              (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+              (end-turn "p1")
+              (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+              (end-turn "p2")
+              (attack-hero "p1" "ne")
+              (get-health "h2"))
+          29))}
+  [state player-id minion-attack-id]
+  (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
+    (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
+      (error "This attack is not possible"))
+    (update-in state [:players attacked-player-id :hero :damage-taken] + value-attack-attack)
+    ))
 
 
