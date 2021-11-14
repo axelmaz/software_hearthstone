@@ -25,7 +25,8 @@
             [firestone.core :refer [get-attack
                                     get-health
                                     valid-attack?
-                                    get-hero-id-from-player-id]]
+                                    get-hero-id-from-player-id
+                                    use-battlecry]]
             ))
 
 (defn end-turn
@@ -94,6 +95,16 @@
                     )
                 8
                 )
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]
+                                   :hand [(create-card "Novice Engineer" :id "n2")]}])
+                    (play-minion-card "p1" "n2" 0)
+                    (get-hand "p1")
+                    (first))
+                (create-card "Nightblade" :id "n" :owner-id "p1"))
+           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n")]}])
+                    (play-minion-card "p1" "n" 0)
+                    (get-health "h2"))
+                27)
            )}
   [state player-id card-id position]
   (when-not (= (get-player-id-in-turn state) player-id)
@@ -106,6 +117,7 @@
     (-> state
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
+        (use-battlecry player-id (card :name))
         (add-minion-to-board player-id card position))))
 
 (defn attack-minion
@@ -152,14 +164,16 @@
           (update-minion minion-attack-id :damage-taken value-attack-defense)
           (update-minion minion-attack-id :attacks-performed-this-turn 1)
           )
-
       )
     )
   )
+
 (defn attack-hero
   {:test
    (fn []
      (is= (-> (create-game)
+              (add-card-to-deck "p1" "Nightblade")
+              (add-card-to-deck "p2" "Nightblade")
               (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
               (end-turn "p1")
               (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
