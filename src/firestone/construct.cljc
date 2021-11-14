@@ -140,6 +140,15 @@
   [state]
   (:player-id-in-turn state))
 
+(defn get-opposing-player-id
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (get-opposing-player-id))
+                "p2"))}
+  [state]
+  (if (= (get-player-id-in-turn state) "p1")
+    "p2"
+    "p1"))
 
 (defn get-minions
   "Returns the minions on the board for the given player-id or for both players."
