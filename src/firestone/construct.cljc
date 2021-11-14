@@ -140,6 +140,16 @@
   [state]
   (:player-id-in-turn state))
 
+(defn get-opposing-player-id
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (get-opposing-player-id))
+                "p2"))}
+  [state]
+  (if (= (get-player-id-in-turn state) "p1")
+    "p2"
+    "p1"))
+
 
 (defn get-minions
   "Returns the minions on the board for the given player-id or for both players."
@@ -589,6 +599,43 @@
 (defn get-mana
   [state player-id]
   (get-in state [:players player-id :mana]))
+(defn enough-mana?
+  {:test (fn []
+           (is (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
+                                  :mana 9}])
+                   (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+           (is-not (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
+                                      :mana 2}])
+                       (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+
+           )}
+  [state player-id card]
+  (>= (get-mana state player-id) ((get-definition (card :name)):mana-cost)))
+
+(defn decrease-mana
+  {:test (fn []
+           (is= (-> (create-game [{:mana 9}])
+                    (decrease-mana "p1" 2)
+                    (get-mana "p1")
+                    )
+                7)
+           )
+   }
+  [state player-id decrease-number]
+  (update-in state [:players player-id :mana]
+             (fn [mana] (- mana decrease-number))))
+
+(defn decrease-mana-with-card
+  {:test (fn []
+           (is= (-> (create-game [{:mana 9}])
+                    (decrease-mana-with-card "p1" (create-card "Nightblade" :id "d"))
+                    (get-mana "p1")
+                    )
+                4)
+           )
+   }
+  [state player-id card]
+  (-> state (decrease-mana player-id ((get-definition (card :name)):mana-cost))))
 
 (defn draw-card
     {:test (fn []
