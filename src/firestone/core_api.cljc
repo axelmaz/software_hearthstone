@@ -82,15 +82,25 @@
                    (empty?)))
            ; The minion should appear on the game
            (is-not (-> (create-game [{:hand [(create-card "Defender" :id "d")]}])
-                   (play-minion-card "p1" "d" 0)
-                   (get-minions "p1")
-                   (empty?)))
+                       (play-minion-card "p1" "d" 0)
+                       (get-minions "p1")
+                       (empty?)))
            ; The mana of the player should decrease by the mana cost of the card
            (is= (-> (create-game [{:hand [(create-card "Defender" :id "d")]
                                    :mana 9}])
                     (play-minion-card "p1" "d" 0)
                     (get-mana "p1"))
-                8))}
+                8)
+           ;The battlecry of the card (if there is one) is applied
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]
+                                   :hand [(create-card "Novice Engineer" :id "ne")]}])
+                    (play-minion-card "p1" "ne" 0)
+                    (get-hand "p1")
+                    (first)
+                    (:name)
+                    )
+                "Nightblade")
+           )}
   [state player-id card-id position]
   (when-not (= (get-player-id-in-turn state) player-id)
     (error "The player with id " player-id " is not in turn."))
@@ -103,14 +113,36 @@
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
         (add-minion-to-board player-id card position)
-        ;(use-battlecry player-id card)
+        (use-battlecry card)
         )))
 
 (defn use-battlecry
-  [state player-id card-name]
-  (when (contains? ((get-definition card-name):description) "Battlecry: ")
-    (-> state
-        )))
+  {:test (fn []
+           ; The battlecry of Novice Engineer is to draw a card so we test if we obtain a card in our hand
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
+                    (use-battlecry "Novice Engineer")
+                    (get-hand "p1")
+                    (first)
+                    (:name)
+                    )
+                "Nightblade")
+           ; We also test if the card is removed from the deck
+           (empty? (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
+                    (use-battlecry "Novice Engineer")
+                    (get-deck "p1")
+                    ))
+           ; The battlecry of Nightblade is to Deal 3 damage to the enemy hero so we test if the enememy heroe's life decrease.
+           (is= (-> (create-game)
+                    (use-battlecry "Nightblade")
+                    (get-health "h2"))
+                27)
+           ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
+           (is= (-> (create-game)
+                    (use-battlecry "Defender"))
+                (create-game)))}
+  [state card-name]
+  (let [battlecry-function ((get-definition card-name) :battlecry)]
+    (if battlecry-function (battlecry-function state) state) ))
 
 (defn attack-minion
   {:test (fn []
