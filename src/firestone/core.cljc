@@ -143,12 +143,3 @@
                 "h1"))}
   [state player-id]
   (get-in state [:players player-id :hero :id]))
-
-
-
-(def state (create-game [{:deck [(create-card "Nightblade" :id "n")]}]))
-state
-(def player-id "p1")
-(draw-card state player-id)
-
-
