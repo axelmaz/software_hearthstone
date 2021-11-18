@@ -106,7 +106,15 @@
     (-> state
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
-        (add-minion-to-board player-id card position))))
+        (add-minion-to-board player-id card position)
+        ;(use-battlecry player-id card)
+        )))
+
+(defn use-battlecry
+  [state player-id card-name]
+  (when (contains? ((get-definition card-name):description) "Battlecry: ")
+    (-> state
+        )))
 
 (defn attack-minion
   {:test (fn []
@@ -166,7 +174,7 @@
               (end-turn "p2")
               (attack-hero "p1" "ne")
               (get-health "h2"))
-          29))}
+          28))}
   [state player-id minion-attack-id]
   (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
@@ -175,3 +183,4 @@
     ))
 
 
+(get-definition "Nightblade")
