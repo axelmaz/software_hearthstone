@@ -25,8 +25,7 @@
             [firestone.core :refer [get-attack
                                     get-health
                                     valid-attack?
-                                    get-hero-id-from-player-id]]
-            ))
+                                    get-hero-id-from-player-id]]))
 
 (defn end-turn
   {:test (fn []
@@ -90,11 +89,8 @@
            (is= (-> (create-game [{:hand [(create-card "Defender" :id "d")]
                                    :mana 9}])
                     (play-minion-card "p1" "d" 0)
-                    (get-mana "p1")
-                    )
-                8
-                )
-           )}
+                    (get-mana "p1"))
+                8))}
   [state player-id card-id position]
   (when-not (= (get-player-id-in-turn state) player-id)
     (error "The player with id " player-id " is not in turn."))
@@ -107,8 +103,7 @@
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
         (add-minion-to-board player-id card position)
-        ;(use-battlecry player-id card)
-        )))
+        ;(use-battlecry player-id card))))
 
 (defn use-battlecry
   [state player-id card-name]
@@ -123,33 +118,26 @@
                     (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                     (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
                     (attack-minion "p1" "ne" "nb")
-                    (get-health "nb")
-                    )
+                    (get-health "nb"))
                 3)
            ;The attacker should loose health points
            (is= (-> (create-game)
                     (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                     (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
                     (attack-minion "p1" "ne" "nb")
-                    (get-health "ne")
-                    )
+                    (get-health "ne"))
                 -3)
            ;The attack has to be valid
            (error? (-> (create-game)
                     (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                     (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
-                    (attack-minion "p2" "ne" "nb")
-                    )
-                   )
+                    (attack-minion "p2" "ne" "nb")))
            ;The attacker could not attack twice a tour
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                        (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
                        (attack-minion "p1" "ne" "nb")
-                       (attack-minion "p1" "ne" "nb")
-                       )
-                   )
-           )}
+                       (attack-minion "p1" "ne" "nb"))))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
@@ -158,29 +146,25 @@
       (-> state
           (update-minion minion-defense-id :damage-taken value-attack-attack)
           (update-minion minion-attack-id :damage-taken value-attack-defense)
-          (update-minion minion-attack-id :attacks-performed-this-turn 1)
-          )
+          (update-minion minion-attack-id :attacks-performed-this-turn 1)))))
 
-      )
-    )
-  )
 (defn attack-hero
   {:test
    (fn []
      (is= (-> (create-game)
+              (add-card-to-deck "p1" "Nightblade")
+              (add-card-to-deck "p2" "Nightblade")
               (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
               (end-turn "p1")
               (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
               (end-turn "p2")
               (attack-hero "p1" "ne")
               (get-health "h2"))
-          28))}
+          29))}
   [state player-id minion-attack-id]
   (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
       (error "This attack is not possible"))
-    (update-in state [:players attacked-player-id :hero :damage-taken] + value-attack-attack)
-    ))
+    (update-in state [:players attacked-player-id :hero :damage-taken] + value-attack-attack)))
 
 
-(get-definition "Nightblade")

@@ -2,16 +2,20 @@
   (:require [ysera.test :refer [is is-not is= error?]]
             [ysera.error :refer [error]]
             [ysera.collections :refer [seq-contains?]]
+            [clojure.string :refer [includes?]]
             [firestone.definitions :refer [get-definition]]
             [firestone.construct :refer [add-minion-to-board
                                          create-card
                                          create-game
                                          create-hero
                                          create-minion
+                                         draw-card
+                                         get-hand
                                          get-heroes
                                          get-mana
                                          get-minion
                                          get-minions
+                                         get-opposing-player-id
                                          get-player-id-in-turn]]))
 
 
@@ -141,5 +145,49 @@
   (get-in state [:players player-id :hero :id]))
 
 
+
+(defn use-battlecry
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
+                    (use-battlecry "p1" "Novice Engineer")
+                    (get-hand "p1")
+                    (first))
+                (create-card "Nightblade" :id "n" :owner-id "p1"))
+           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n")]}])
+                    (use-battlecry "p1" "Nightblade")
+                    (get-health "h2"))
+                27)
+           (is= (-> (create-game)
+                    (use-battlecry "p1" "Defender")
+                    )
+                (create-game))
+           )}
+  [state player-id card-name]
+  (if (= ((get-definition card-name) :description) nil)
+    state
+    (if (includes? ((get-definition card-name) :description) "Battlecry: Deal 3 damage to the enemy hero.")
+      (let [player-change-fn {"p1" "p2"
+                              "p2" "p1"}]
+        (let [player-other-id (get player-change-fn player-id)]
+          (update-in state [:players player-other-id :hero :damage-taken] + 3)
+          )
+        )
+      (if (includes? ((get-definition card-name) :description) "Battlecry: Draw a card.")
+        (draw-card state player-id)
+        state
+        )
+      ; (when ((= ((get-definition card-name) :description) nil))
+      ; state
+      )
+    )
+    )
+
+
+
+
+(def state (create-game [{:deck [(create-card "Nightblade" :id "n")]}]))
+state
+(def player-id "p1")
+(draw-card state player-id)
 
 
