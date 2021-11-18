@@ -103,7 +103,8 @@
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
         (add-minion-to-board player-id card position)
-        ;(use-battlecry player-id card))))
+        ;(use-battlecry player-id card)
+        )))
 
 (defn use-battlecry
   [state player-id card-name]
