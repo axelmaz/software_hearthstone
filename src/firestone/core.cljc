@@ -146,45 +146,6 @@
 
 
 
-;(defn use-battlecry
-;  {:test (fn []
-;           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
-;                    (use-battlecry "p1" "Novice Engineer")
-;                    (get-hand "p1")
-;                    (first))
-;                (create-card "Nightblade" :id "n" :owner-id "p1"))
-;           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n")]}])
-;                    (use-battlecry "p1" "Nightblade")
-;                    (get-health "h2"))
-;                27)
-;           (is= (-> (create-game)
-;                    (use-battlecry "p1" "Defender")
-;                    )
-;                (create-game))
-;           )}
-;  [state player-id card-name]
-;  (if (= ((get-definition card-name) :description) nil)
-;    state
-;    (if (includes? ((get-definition card-name) :description) "Battlecry: Deal 3 damage to the enemy hero.")
-;      (let [player-change-fn {"p1" "p2"
-;                              "p2" "p1"}]
-;        (let [player-other-id (get player-change-fn player-id)]
-;          (update-in state [:players player-other-id :hero :damage-taken] + 3)
-;          )
-;        )
-;      (if (includes? ((get-definition card-name) :description) "Battlecry: Draw a card.")
-;        (draw-card state player-id)
-;        state
-;        )
-;      ; (when ((= ((get-definition card-name) :description) nil))
-;      ; state
-;      )
-;    )
-;    )
-
-
-
-
 (def state (create-game [{:deck [(create-card "Nightblade" :id "n")]}]))
 state
 (def player-id "p1")
