@@ -1,6 +1,6 @@
 (ns firestone.definition.card
   (:require [firestone.definitions :refer [add-definitions!]]
-            [firestone.core :refer []]
+            [firestone.core :refer [deal-damages]]
             [firestone.construct :refer [draw-card
                                          get-opposing-player-id
                                          get-player-id-in-turn]]))
@@ -136,7 +136,7 @@
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
     :battlecry (fn [state]
-                 (update-in state [:players (get-opposing-player-id state) :hero :damage-taken] + 3))}
+                 (deal-damages state (get-opposing-player-id state) 3))}
 
    "Ragnaros the Firelord"
    {:attack      8

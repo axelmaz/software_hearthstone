@@ -9,7 +9,8 @@
     :class      :mage
     :type       :hero
     :health     30
-    :hero-power "Fireblast"}
+    :hero-power "Fireblast"
+    :hero-power-function 0}
 
    "Thrall"
    {:name       "Thrall"

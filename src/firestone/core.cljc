@@ -16,7 +16,9 @@
                                          get-minion
                                          get-minions
                                          get-opposing-player-id
-                                         get-player-id-in-turn]]))
+                                         get-player-id-in-turn
+                                         get-players
+                                         update-minion]]))
 
 
 (defn get-character
@@ -137,9 +139,99 @@
 
 
 (defn get-hero-id-from-player-id
+  "return the id of the heroe of the player with the given id"
   {:test (fn []
            (is= (-> (create-game)
                     (get-hero-id-from-player-id "p1"))
                 "h1"))}
   [state player-id]
   (get-in state [:players player-id :hero :id]))
+
+(defn get-player-id-from-heroe-id
+  "return the id of the player corresponding to the heroe with the given id"
+  [state heroe-id]
+  {:test (fn []
+           (is= (-> (create-game)
+                    (get-player-id-from-heroe-id "h1"))
+                "p1"))}
+  (let [which-player? (fn [player-id] (= heroe-id (get-hero-id-from-player-id state player-id)))
+        players (get-players state)]
+    (first (filter which-player? (map :id players)))))
+
+(defn deal-damages-to-minion
+  "Deal the value of damage to the corresponding minion"
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (deal-damages-to-minion "n1" 1)
+                    (get-health "n1"))
+                3)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (deal-damages-to-minion "doesn't exist" 1))
+                nil)
+           )}
+  [state minion-id value-damages]
+  (let [is-minion-id? (reduce (fn [a v]
+                                (if (= v minion-id)
+                                  true
+                                  a))
+                              false
+                              (map :id (get-minions state)))]
+    (if is-minion-id? ; test if minion-id is the id of a minion
+      (-> state
+          (update-minion minion-id :damage-taken value-damages))
+      nil)))
+
+(defn deal-damages-to-heroe-by-player-id
+  "Deal the value of damage to the corresponding heroe given thanks to the player id"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (deal-damages-to-heroe-by-player-id "p1" 10)
+                    (get-health "h1"))
+                20)
+           (is= (-> (create-game)
+                    (deal-damages-to-heroe-by-player-id "doesn't exist" 10))
+                nil)
+           )}
+  [state player-id value-damages]
+  (let [is-player-id? (reduce (fn [a v]
+                                       (if (= v player-id)
+                                         true
+                                         a))
+                                     false
+                                     (map :id (get-players state)))]
+        (if is-player-id? ; test if player-id is the id of a player
+        (update-in state [:players player-id :hero :damage-taken] + value-damages)
+          nil)))
+
+(defn deal-damages-to-heroe-by-heroe-id
+  "Deal the value of damage to the corresponding heroe given thanks to the heroe id"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (deal-damages-to-heroe-by-heroe-id "h1" 10)
+                    (get-health "h1"))
+                20)
+           )}
+  [state heroe-id value-damages]
+  (deal-damages-to-heroe-by-player-id state (get-player-id-from-heroe-id state heroe-id) value-damages))
+
+(defn deal-damages
+  "Deal the value of damage to the corresponding character"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (deal-damages "h1" 10)
+                    (get-health "h1"))
+                20)
+           (is= (-> (create-game)
+                    (deal-damages "p1" 10)
+                    (get-health "h1"))
+                20)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (deal-damages "n1" 1)
+                    (get-health "n1"))
+                3)
+           )}
+  [state id value-damages]
+    (or (deal-damages-to-minion state id value-damages)
+        (deal-damages-to-heroe-by-heroe-id state id value-damages)
+        (deal-damages-to-heroe-by-player-id state id value-damages)
+        ))

@@ -22,7 +22,8 @@
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
-            [firestone.core :refer [get-attack
+            [firestone.core :refer [deal-damages
+                                    get-attack
                                     get-health
                                     valid-attack?
                                     get-hero-id-from-player-id]]))
@@ -176,8 +177,8 @@
   (let [value-attack-attack (get-attack state minion-attack-id)]
     (let [value-attack-defense (get-attack state minion-defense-id)]
       (-> state
-          (update-minion minion-defense-id :damage-taken value-attack-attack)
-          (update-minion minion-attack-id :damage-taken value-attack-defense)
+          (deal-damages minion-defense-id value-attack-attack)
+          (deal-damages minion-attack-id value-attack-defense)
           (update-minion minion-attack-id :attacks-performed-this-turn 1)))))
 
 (defn attack-hero
@@ -197,6 +198,6 @@
   (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
       (error "This attack is not possible"))
-    (update-in state [:players attacked-player-id :hero :damage-taken] + value-attack-attack)))
+    (deal-damages state attacked-player-id value-attack-attack)))
 
 
