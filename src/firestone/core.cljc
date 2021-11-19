@@ -18,6 +18,9 @@
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
+                                         is-divine-shield?
+                                         remove-divine-shield
+                                         set-divine-shield
                                          update-minion]]))
 
 
@@ -161,10 +164,24 @@
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
   {:test (fn []
+           ;A minion with the given id should take damage so its life decreases
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (deal-damages-to-minion "n1" 1)
                     (get-health "n1"))
                 3)
+           ;If the minion has a divine-shield it does not loose any life point
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (deal-damages-to-minion "n1" 1)
+                    (get-health "n1"))
+                4)
+           ;If the minion has a divine-shield it should loose it
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (deal-damages-to-minion "n1" 1)
+                    (is-divine-shield? "n1"))
+                false)
+           ;If the id doesn't correspond we return nil (uselful for deal-damages function
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (deal-damages-to-minion "doesn't exist" 1))
                 nil)
@@ -176,10 +193,12 @@
                                   a))
                               false
                               (map :id (get-minions state)))]
-    (if is-minion-id? ; test if minion-id is the id of a minion
-      (-> state
-          (update-minion minion-id :damage-taken value-damages))
-      nil)))
+    (if-not is-minion-id? ; test if minion-id is the id of a minion
+      nil
+      (if (is-divine-shield? state minion-id)
+        (remove-divine-shield state minion-id)
+        (-> state
+          (update-minion minion-id :damage-taken value-damages))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"

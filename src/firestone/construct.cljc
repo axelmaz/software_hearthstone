@@ -654,3 +654,41 @@
       (-> state
           (remove-card-from-deck player-id (:id card))
           (add-card-to-hand player-id card)))))
+
+(defn set-divine-shield
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (get-minion "n1")
+                    (:divine-shield))
+                true))}
+  [state minion-id]
+  (update-minion state minion-id :divine-shield true))
+
+(defn remove-divine-shield
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (remove-divine-shield "n1")
+                    (get-minion "n1")
+                    (:divine-shield))
+                false))}
+  [state minion-id]
+  (update-minion state minion-id :divine-shield false))
+
+(defn is-divine-shield?
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (is-divine-shield? "n1"))
+                true)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                    (is-divine-shield? "n1"))
+                false)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                    (set-divine-shield "n1")
+                    (remove-divine-shield "n1")
+                    (is-divine-shield? "n1"))
+                false))}
+  [state minion-id]
+  (boolean (:divine-shield (get-minion state minion-id))))

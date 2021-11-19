@@ -2,8 +2,10 @@
   (:require [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages]]
             [firestone.construct :refer [draw-card
+                                         get-minions
                                          get-opposing-player-id
-                                         get-player-id-in-turn]]))
+                                         get-player-id-in-turn
+                                         set-divine-shield]]))
 
 (def card-definitions
   {
@@ -18,7 +20,12 @@
     :health      2
     :set         :classic
     :rarity      :common
-    :attack      2}
+    :attack      2
+    :battlecry (fn [state card target-minion-id]
+                 (set-divine-shield state target-minion-id))
+    :battlecry-valid-target (fn [state player-id]
+                              (get-minions state player-id))
+    }
 
    "Argent Squire"
    {:attack      1
@@ -28,7 +35,10 @@
     :name        "Argent Squire"
     :rarity      :common
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry (fn [state card]
+                (let [target-minion-id (:id card)]
+                 (set-divine-shield state target-minion-id)))}
 
    "Armorsmith"
    {:description "Whenever a friendly minion takes damage gain 1 Armor."
@@ -124,7 +134,7 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Draw a card."
-    :battlecry (fn [state ]
+    :battlecry (fn [state card]
                  (draw-card state (get-player-id-in-turn state)))}
 
    "Nightblade"
@@ -135,7 +145,7 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
-    :battlecry (fn [state]
+    :battlecry (fn [state card]
                  (deal-damages state (get-opposing-player-id state) 3))}
 
    "Ragnaros the Firelord"

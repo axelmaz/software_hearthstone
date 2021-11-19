@@ -19,14 +19,15 @@
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
+                                         is-divine-shield?
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [deal-damages
                                     get-attack
                                     get-health
-                                    valid-attack?
-                                    get-hero-id-from-player-id]]))
+                                    get-hero-id-from-player-id
+                                    valid-attack?]]))
 
 (defn end-turn
   {:test (fn []
@@ -82,13 +83,41 @@
                     (use-battlecry "Nightblade")
                     (get-health "h2"))
                 27)
+           ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
+           (is (-> (create-game [{:minions [(create-minion "Defender" :id "d")
+                                             (create-minion "Defender" :id "d2")]}])
+                   (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
+                   (is-divine-shield? "d")))
+           ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
+           (is-not (-> (create-game [{:minions [(create-minion "Defender" :id "d")
+                                             (create-minion "Defender" :id "d2")]}])
+                    (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
+                    (is-divine-shield? "d2")))
+           ; Divine shield minions are seen as battlecry, and get a shield at this moment
+           (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
+                   (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
+                   (is-divine-shield? "a")))
            ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
            (is= (-> (create-game)
                     (use-battlecry "Defender"))
                 (create-game)))}
-  [state card-name]
-  (let [battlecry-function ((get-definition card-name) :battlecry)]
-    (if battlecry-function (battlecry-function state) state) ))
+  ([state card]
+  (let [battlecry-function ((get-definition card) :battlecry)]
+    (if battlecry-function (battlecry-function state card) state)))
+  ([state card target-id]
+   (let [owner-id (:owner-id card)
+         valid-targets-list (((get-definition card) :battlecry-valid-target) state owner-id)
+         is-valid-target? (reduce (fn [a v]
+                                     (if (= (:id v) target-id)
+                                       true
+                                       a))
+                                   false
+                                   valid-targets-list)]
+     (if-not is-valid-target?
+       (error "invalid target")
+       (let [battlecry-function ((get-definition card) :battlecry)]
+         (if battlecry-function (battlecry-function state card target-id) state) )
+       ))))
 
 (defn play-minion-card
   {:test (fn []
