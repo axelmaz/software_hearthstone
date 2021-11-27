@@ -43,11 +43,11 @@
            (error? (-> (create-game)
                        (end-turn "p2")))
            (is= (-> (create-game)
-                   (add-card-to-deck "p2" "Nightblade")
-                   (end-turn "p1")
-                   (get-card-from-hand "p2" "c1")
-                   (:name))
-               "Nightblade")
+                    (add-card-to-deck "p2" "Nightblade")
+                    (end-turn "p1")
+                    (get-card-from-hand "p2" "c1")
+                    (:name))
+                "Nightblade")
            (is= (-> (create-game [{:mana 6}])
                     (end-turn "p1")
                     (end-turn "p2")
@@ -85,14 +85,14 @@
                 27)
            ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
            (is (-> (create-game [{:minions [(create-minion "Defender" :id "d")
-                                             (create-minion "Defender" :id "d2")]}])
+                                            (create-minion "Defender" :id "d2")]}])
                    (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
                    (is-divine-shield? "d")))
            ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
            (is-not (-> (create-game [{:minions [(create-minion "Defender" :id "d")
-                                             (create-minion "Defender" :id "d2")]}])
-                    (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
-                    (is-divine-shield? "d2")))
+                                                (create-minion "Defender" :id "d2")]}])
+                       (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
+                       (is-divine-shield? "d2")))
            ; Divine shield minions are seen as battlecry, and get a shield at this moment
            (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
                    (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
@@ -102,21 +102,21 @@
                     (use-battlecry "Defender"))
                 (create-game)))}
   ([state card]
-  (let [battlecry-function ((get-definition card) :battlecry)]
-    (if battlecry-function (battlecry-function state card) state)))
+   (let [battlecry-function ((get-definition card) :battlecry)]
+     (if battlecry-function (battlecry-function state card) state)))
   ([state card target-id]
    (let [owner-id (:owner-id card)
          valid-targets-list (((get-definition card) :battlecry-valid-target) state owner-id)
          is-valid-target? (reduce (fn [a v]
-                                     (if (= (:id v) target-id)
-                                       true
-                                       a))
-                                   false
-                                   valid-targets-list)]
+                                    (if (= (:id v) target-id)
+                                      true
+                                      a))
+                                  false
+                                  valid-targets-list)]
      (if-not is-valid-target?
        (error "invalid target")
        (let [battlecry-function ((get-definition card) :battlecry)]
-         (if battlecry-function (battlecry-function state card target-id) state) )
+         (if battlecry-function (battlecry-function state card target-id) state))
        ))))
 
 (defn play-minion-card
@@ -191,9 +191,9 @@
                 -3)
            ;The attack has to be valid
            (error? (-> (create-game)
-                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                    (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
-                    (attack-minion "p2" "ne" "nb")))
+                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                       (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                       (attack-minion "p2" "ne" "nb")))
            ;The attacker could not attack twice a tour
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)

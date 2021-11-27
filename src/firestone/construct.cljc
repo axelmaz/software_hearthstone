@@ -9,7 +9,8 @@
            (is= (create-hero "Jaina Proudmoore")
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
-                 :damage-taken 0})
+                 :damage-taken 0
+                 :armor        0})
            (is= (create-hero "Jaina Proudmoore" :damage-taken 10)
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
@@ -609,7 +610,7 @@
 
            )}
   [state player-id card]
-  (>= (get-mana state player-id) ((get-definition (card :name)):mana-cost)))
+  (>= (get-mana state player-id) ((get-definition (card :name)) :mana-cost)))
 
 (defn decrease-mana
   {:test (fn []
@@ -634,19 +635,19 @@
            )
    }
   [state player-id card]
-  (-> state (decrease-mana player-id ((get-definition (card :name)):mana-cost))))
+  (-> state (decrease-mana player-id ((get-definition (card :name)) :mana-cost))))
 
 (defn draw-card
-    {:test (fn []
-             (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
-                      (draw-card "p1")
-                      (get-card-from-hand "p1" "n1")
-                      (:name))
-                  "Nightblade")
-             (is= (-> (create-game)
-                     (draw-card "p1")
-                     (get-in [:players "p1" :hero :damage-taken]))
-                 1))}
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-card "p1")
+                    (get-card-from-hand "p1" "n1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game)
+                    (draw-card "p1")
+                    (get-in [:players "p1" :hero :damage-taken]))
+                1))}
   [state player-id]
   (if (empty? (get-deck state player-id))
     (update-in state [:players player-id :hero :damage-taken] inc)

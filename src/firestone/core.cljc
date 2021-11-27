@@ -41,6 +41,28 @@
       (some (fn [h] (when (= (:id h) id) h))
             (get-heroes state))))
 
+(defn get-armor
+  "Returns the armor of the character."
+  {:test (fn []
+           ; hero without armor
+           (is= (-> (create-hero "Jaina Proudmoore")
+                    (get-armor))
+                0)
+           ; hero with armor
+           (is= (-> (create-hero "Jaina Proudmoore" :armor 1)
+                    (get-armor))
+                1)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-armor "h1"))
+                0)
+           )}
+  ([character]
+   (let [armor (:armor character)]
+     (if (some? armor)
+       armor
+       0)))
+  ([state id]
+   (get-armor (get-character state id))))
 
 (defn get-health
   "Returns the health of the character."
@@ -161,6 +183,59 @@
         players (get-players state)]
     (first (filter which-player? (map :id players)))))
 
+(defn effect-minion-damaged
+  "the minion minion-id took damages, so we apply the effects of the other minion of the field"
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
+                                             (create-card "Nightblade" :id "n")]}])
+                    (effect-minion-damaged "a")
+                    (get-armor "h1"))
+                1)
+           (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
+                                             (create-card "Nightblade" :id "n")
+                                             (create-card "Armorsmith" :id "a")]}])
+                    (effect-minion-damaged "a")
+                    (get-armor "h1"))
+                2)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "a")
+                                             (create-card "Nightblade" :id "n")
+                                             (create-card "Nightblade" :id "a")]}])
+                    (effect-minion-damaged "a")
+                    (get-armor "h1"))
+                0))}
+  [state minion-id]
+  (let [owner-id (:owner-id (get-minion state minion-id))
+        minions-of-the-player (get-minions state owner-id)
+        function-damaged-minion (fn [a minion]
+                                  (let [function-result (:effect-when-friendly-minion-takes-damage (get-definition (:name minion)))]
+                                    (if (some? function-result)
+                                      (function-result a minion)
+                                      a)))]
+    (reduce function-damaged-minion state minions-of-the-player)))
+
+(defn update-armor
+  "Update (increase or decrease) the armor of the hero of the given player-id."
+  {:test (fn []
+           ; hero without armor
+           (is= (-> (create-game)
+                    (update-armor "p1" 1)
+                    (get-armor "h1"))
+                1)
+           ; hero with armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 2 :id "h1")}])
+                    (update-armor "p1" 1)
+                    (get-armor "h1"))
+                3)
+           ; loosing armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 2 :id "h1")}])
+                    (update-armor "p1" -1)
+                    (get-armor "h1"))
+                1))}
+  [state player-id value]
+  (if (= 0 (get-armor state (get-hero-id-from-player-id state player-id)))
+    (update-in state [:players player-id :hero] assoc :armor value)
+    (update-in state [:players player-id :hero :armor] + value)))
+
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
   {:test (fn []
@@ -185,6 +260,12 @@
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (deal-damages-to-minion "doesn't exist" 1))
                 nil)
+           ;Is the effect of Armorsmith working ?
+           (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
+                                             (create-card "Nightblade" :id "n")]}])
+                    (deal-damages-to-minion "n" 1)
+                    (get-armor "h1"))
+                1)
            )}
   [state minion-id value-damages]
   (let [is-minion-id? (reduce (fn [a v]
@@ -193,42 +274,88 @@
                                   a))
                               false
                               (map :id (get-minions state)))]
-    (if-not is-minion-id? ; test if minion-id is the id of a minion
+    (if-not is-minion-id?                                   ; test if minion-id is the id of a minion
       nil
       (if (is-divine-shield? state minion-id)
         (remove-divine-shield state minion-id)
         (-> state
-          (update-minion minion-id :damage-taken value-damages))))))
+            (effect-minion-damaged minion-id)
+            (update-minion minion-id :damage-taken value-damages))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"
   {:test (fn []
+           ; Without armor
            (is= (-> (create-game)
                     (deal-damages-to-heroe-by-player-id "p1" 10)
                     (get-health "h1"))
                 20)
+           ; With armor but damages are less important than armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-player-id "p1" 2)
+                    (get-armor "h1"))
+                8)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-player-id "p1" 2)
+                    (get-health "h1"))
+                30)
+           ; With armor and damages are more important than armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-player-id "p1" 18)
+                    (get-armor "h1"))
+                0)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-player-id "p1" 18)
+                    (get-health "h1"))
+                22)
+           ; Error = return nil
            (is= (-> (create-game)
                     (deal-damages-to-heroe-by-player-id "doesn't exist" 10))
                 nil)
            )}
   [state player-id value-damages]
   (let [is-player-id? (reduce (fn [a v]
-                                       (if (= v player-id)
-                                         true
-                                         a))
-                                     false
-                                     (map :id (get-players state)))]
-        (if is-player-id? ; test if player-id is the id of a player
-        (update-in state [:players player-id :hero :damage-taken] + value-damages)
-          nil)))
+                                (if (= v player-id)
+                                  true
+                                  a))
+                              false
+                              (map :id (get-players state)))]
+    (if-not is-player-id?                                   ; test if player-id is the id of a player
+      nil
+      (let [armor (get-armor state (get-hero-id-from-player-id state player-id))
+            armor-damages (- armor value-damages)]
+        (if (>= armor-damages 0)
+          (update-armor state player-id (- value-damages))
+          (-> state
+              (update-armor player-id (- armor))
+              (update-in [:players player-id :hero :damage-taken] - armor-damages)))))))
 
 (defn deal-damages-to-heroe-by-heroe-id
   "Deal the value of damage to the corresponding heroe given thanks to the heroe id"
   {:test (fn []
+           ; Without armor
            (is= (-> (create-game)
                     (deal-damages-to-heroe-by-heroe-id "h1" 10)
                     (get-health "h1"))
                 20)
+           ; With armor but damages are less important than armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-heroe-id "h1" 2)
+                    (get-armor "h1"))
+                8)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-heroe-id "h1" 2)
+                    (get-health "h1"))
+                30)
+           ; With armor and damages are more important than armor
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-heroe-id "h1" 18)
+                    (get-armor "h1"))
+                0)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 10 :id "h1")}])
+                    (deal-damages-to-heroe-by-heroe-id "h1" 18)
+                    (get-health "h1"))
+                22)
            )}
   [state heroe-id value-damages]
   (deal-damages-to-heroe-by-player-id state (get-player-id-from-heroe-id state heroe-id) value-damages))
@@ -250,7 +377,7 @@
                 3)
            )}
   [state id value-damages]
-    (or (deal-damages-to-minion state id value-damages)
-        (deal-damages-to-heroe-by-heroe-id state id value-damages)
-        (deal-damages-to-heroe-by-player-id state id value-damages)
-        ))
+  (or (deal-damages-to-minion state id value-damages)
+      (deal-damages-to-heroe-by-heroe-id state id value-damages)
+      (deal-damages-to-heroe-by-player-id state id value-damages)
+      ))

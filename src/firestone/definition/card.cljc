@@ -1,6 +1,7 @@
 (ns firestone.definition.card
   (:require [firestone.definitions :refer [add-definitions!]]
-            [firestone.core :refer [deal-damages]]
+            [firestone.core :refer [deal-damages
+                                    update-armor]]
             [firestone.construct :refer [draw-card
                                          get-minions
                                          get-opposing-player-id
@@ -10,19 +11,18 @@
 (def card-definitions
   {
 
-
    "Argent Protector"
-   {:description "Battlecry: Give a friendly minion Divine Shield."
-    :name        "Argent Protector"
-    :type        :minion
-    :mana-cost   2
-    :class       :paladin
-    :health      2
-    :set         :classic
-    :rarity      :common
-    :attack      2
-    :battlecry (fn [state card target-minion-id]
-                 (set-divine-shield state target-minion-id))
+   {:description            "Battlecry: Give a friendly minion Divine Shield."
+    :name                   "Argent Protector"
+    :type                   :minion
+    :mana-cost              2
+    :class                  :paladin
+    :health                 2
+    :set                    :classic
+    :rarity                 :common
+    :attack                 2
+    :battlecry              (fn [state card target-minion-id]
+                              (set-divine-shield state target-minion-id))
     :battlecry-valid-target (fn [state player-id]
                               (get-minions state player-id))
     }
@@ -36,20 +36,24 @@
     :rarity      :common
     :set         :classic
     :type        :minion
-    :battlecry (fn [state card]
-                (let [target-minion-id (:id card)]
-                 (set-divine-shield state target-minion-id)))}
+    :battlecry   (fn [state card]
+                   (let [target-minion-id (:id card)]
+                     (set-divine-shield state target-minion-id)))}
 
    "Armorsmith"
-   {:description "Whenever a friendly minion takes damage gain 1 Armor."
-    :name        "Armorsmith"
-    :type        :minion
-    :mana-cost   2
-    :class       :warrior
-    :health      4
-    :set         :classic
-    :rarity      :rare
-    :attack      1}
+   {:description                              "Whenever a friendly minion takes damage gain 1 Armor."
+    :name                                     "Armorsmith"
+    :type                                     :minion
+    :mana-cost                                2
+    :class                                    :warrior
+    :health                                   4
+    :set                                      :classic
+    :rarity                                   :rare
+    :attack                                   1
+    :effect-when-friendly-minion-takes-damage (fn [state card]
+                                                (let [player-id (:owner-id card)]
+                                                  (update-armor state player-id 1)))}
+
 
    "Bananas"
    {:description "Give a minion +1/+1."
@@ -134,8 +138,8 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Draw a card."
-    :battlecry (fn [state card]
-                 (draw-card state (get-player-id-in-turn state)))}
+    :battlecry   (fn [state card]
+                   (draw-card state (get-player-id-in-turn state)))}
 
    "Nightblade"
    {:name        "Nightblade"
@@ -145,8 +149,8 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
-    :battlecry (fn [state card]
-                 (deal-damages state (get-opposing-player-id state) 3))}
+    :battlecry   (fn [state card]
+                   (deal-damages state (get-opposing-player-id state) 3))}
 
    "Ragnaros the Firelord"
    {:attack      8
@@ -168,14 +172,14 @@
     :type        :spell}
 
    "Snake"
-   {:name          "Snake"
-    :attack        1
-    :health        1
-    :mana-cost     1
-    :type          :minion
-    :set           :classic
-    :race          :beast
-    :class         :hunter}
+   {:name      "Snake"
+    :attack    1
+    :health    1
+    :mana-cost 1
+    :type      :minion
+    :set       :classic
+    :race      :beast
+    :class     :hunter}
 
    "Whirlwind"
    {:class       :warrior
