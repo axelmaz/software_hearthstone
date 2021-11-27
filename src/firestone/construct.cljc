@@ -692,3 +692,19 @@
                 false))}
   [state minion-id]
   (boolean (:divine-shield (get-minion state minion-id))))
+
+(defn give-minion-plus-one
+  "Spell to give a targeted minion +1/+1"
+  {:test (fn []
+           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}]) $
+                    (give-minion-plus-one $ "Nightblade" "n1")
+                    (:attack (get-minion $ "n1")))
+                5)
+           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}]) $
+                      (give-minion-plus-one $ "Nightblade" "n1")
+                      (:health (get-minion $ "n1")))
+                5))}
+  [state minion-name minion-id]
+  (-> state
+  (update-minion minion-id :health (+ ((get-definition minion-name):health) 1))
+  (update-minion minion-id :attack (+ ((get-definition minion-name):attack) 1))))

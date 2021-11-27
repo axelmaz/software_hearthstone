@@ -5,7 +5,8 @@
                                          get-minions
                                          get-opposing-player-id
                                          get-player-id-in-turn
-                                         set-divine-shield]]))
+                                         set-divine-shield
+                                         give-minion-plus-one]]))
 
 (def card-definitions
   {
@@ -56,7 +57,10 @@
     :mana-cost   1
     :name        "Bananas"
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :battlecry   (fn [state card]
+                   (let [target-minion-name (:name card) target-minion-id (:id card)]
+                     (give-minion-plus-one state target-minion-name target-minion-id)))}
 
    "Battle Rage"
    {:class       :warrior
