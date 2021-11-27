@@ -696,15 +696,25 @@
 (defn give-minion-plus-one
   "Spell to give a targeted minion +1/+1"
   {:test (fn []
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}]) $
-                    (give-minion-plus-one $ "Nightblade" "n1")
+           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
+                    (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
                     (:attack (get-minion $ "n1")))
                 5)
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}]) $
-                      (give-minion-plus-one $ "Nightblade" "n1")
+           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
+                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
                       (:health (get-minion $ "n1")))
-                5))}
-  [state minion-name minion-id]
-  (-> state
-  (update-minion minion-id :health (+ ((get-definition minion-name):health) 1))
-  (update-minion minion-id :attack (+ ((get-definition minion-name):attack) 1))))
+                5)
+           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 2)]}]) $
+                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
+                      (:damage-taken (get-minion $ "n1")))
+                1))}
+  [state player-id minion-name minion-id pos]
+  (if (=(get-in state [:players player-id :minions pos :damage-taken]) 0)
+    (-> state
+          (update-minion minion-id :health inc)
+          (update-minion minion-id :attack inc))
+    (as-> state $
+          (update-minion $ minion-id :health inc)
+          (update-minion $ minion-id :damage-taken dec)
+          (update-minion $ minion-id :attack inc))
+    ))

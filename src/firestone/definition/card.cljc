@@ -58,9 +58,9 @@
     :name        "Bananas"
     :set         :classic
     :type        :spell
-    :battlecry   (fn [state card]
-                   (let [target-minion-name (:name card) target-minion-id (:id card)]
-                     (give-minion-plus-one state target-minion-name target-minion-id)))}
+    :battlecry   (fn [state card pos]
+                   (let [target-minion-name (:name card) target-minion-id (:id card) player-id (get-player-id-in-turn state)]
+                     (give-minion-plus-one state player-id target-minion-name target-minion-id pos)))}
 
    "Battle Rage"
    {:class       :warrior
