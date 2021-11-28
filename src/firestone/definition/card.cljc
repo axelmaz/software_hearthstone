@@ -217,8 +217,10 @@
     :mana-cost   1
     :name        "Whirlwind"
     :set         :basic
-    :type        :spell}
-
-   })
-
+    :type        :spell
+    :battlecry (fn [state card]
+                 (let [minions-list (get-minions state)
+                       deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                   (reduce deal-one-damage state minions-list)))
+   }})
 (add-definitions! card-definitions)

@@ -117,6 +117,16 @@
                     (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1"))
                     (get-armor "h1"))
                 3)
+           ; Test "Whirlwind"
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (use-battlecry (create-minion "Whirlwind"))
+                    (get-health "n"))
+                3)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (add-minion-to-board "p2" (create-minion "Defender" :id "n2" :health 2) 0)
+                    (use-battlecry (create-minion "Whirlwind"))
+                    (get-health "n2"))
+                1)
            )}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]
@@ -203,7 +213,7 @@
                     (play-spell-card "p1" "d")
                     (get-mana "p1"))
                 7)
-           ;The battlecry of the card (if there is one) is applied
+           ;The effect (battlecry) of the card (if there is one) is applied
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]
                                    :hand    [(create-card "Battle Rage" :id "ne")]
                                    :deck    [(create-card "Nightblade" :id "n2")]}])
