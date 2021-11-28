@@ -9,8 +9,7 @@
     :class      :mage
     :type       :hero
     :health     30
-    :hero-power "Fireblast"
-    :hero-power-function 0}
+    :hero-power "Fireblast"}
 
    "Thrall"
    {:name       "Thrall"
@@ -18,6 +17,13 @@
     :class      :shaman
     :health     30
     :hero-power "Totemic Call"}
+
+   "Garrosh Hellscream"
+   {:name       "Garrosh Hellscream"
+    :type       :hero
+    :class      :warrior
+    :health     30
+    :hero-power "Armor Up!"}
 
    })
 

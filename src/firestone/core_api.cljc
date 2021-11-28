@@ -8,6 +8,7 @@
                                          create-game
                                          create-hero
                                          create-minion
+                                         decrease-mana
                                          decrease-mana-with-card
                                          draw-card
                                          enough-mana?
@@ -28,6 +29,7 @@
                                     end-turn-effect
                                     get-armor
                                     get-attack
+                                    get-character
                                     get-health
                                     get-hero-id-from-player-id
                                     valid-attack?
@@ -305,3 +307,63 @@
     (deal-damages state attacked-player-id value-attack-attack)))
 
 
+(defn use-hero-power
+  "Allow the player to use the hero power
+  TODO : - valid-power? to check the mana and if it has already be used this turn
+  - handle the target or not target powers
+  - use functions instead of all in this one"
+  {:test (fn []
+           ; Shouldn't be able to use the power when not in turn
+           (error? (-> (create-game :player-id-in-turn "p2")
+                       (use-hero-power "p1")))
+           ; Shouldn't be able to use the power if not enough mana
+           (error? (-> (create-game [{:mana 1}])
+                       (use-hero-power "p1")))
+           ; Shouldn't be able to use the power twice a tour TODO
+           (error? (-> (create-game [{:hero "Garrosh Hellscream"
+                                      :mana 9}])
+                       (use-hero-power "p1")
+                       (use-hero-power "p1")))
+           ; The mana of the player should decrease by the mana cost of the card
+           (is= (-> (create-game [{:hero "Garrosh Hellscream"
+                                   :mana 9}])
+                    (use-hero-power "p1")
+                    (get-mana "p1"))
+                7)
+           ;The effect of the power is applied
+           (is= (-> (create-game [{:hero "Garrosh Hellscream"}])
+                    (use-hero-power "p1")
+                    (get-armor "h1"))
+                2)
+           ;The effect of the power is applied
+           (is= (-> (create-game)
+                    (use-hero-power "p1" "h2")
+                    (get-health "h2"))
+                29)
+           )}
+  ([state player-id]
+  (when-not (= (get-player-id-in-turn state) player-id)
+    (error "The player with id " player-id " is not in turn."))
+  (let [hero (get-character state (get-hero-id-from-player-id state player-id))
+        power ((get-definition (hero :name)) :hero-power)
+        mana-cost ((get-definition power) :mana-cost)
+        effect ((get-definition power) :effect)]
+    (when-not (>= (get-mana state player-id) mana-cost)
+      (error "Not enough mana."))
+    (-> state
+        (decrease-mana player-id mana-cost)
+        (effect)
+        )))
+  ([state player-id target-id]
+   (when-not (= (get-player-id-in-turn state) player-id)
+     (error "The player with id " player-id " is not in turn."))
+   (let [hero (get-character state (get-hero-id-from-player-id state player-id))
+         power ((get-definition (hero :name)) :hero-power)
+         mana-cost ((get-definition power) :mana-cost)
+         effect ((get-definition power) :effect)]
+     (when-not (>= (get-mana state player-id) mana-cost)
+       (error "Not enough mana."))
+     (-> state
+         (decrease-mana player-id mana-cost)
+         (effect target-id)
+         ))))

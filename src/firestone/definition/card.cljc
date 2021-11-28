@@ -3,7 +3,6 @@
             [ysera.random :refer [random-nth]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
-                                    update-armor
                                     damage-random-enemy
                                     get-armor
                                     get-attack
