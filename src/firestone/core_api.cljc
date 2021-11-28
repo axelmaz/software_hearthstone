@@ -6,6 +6,7 @@
                                          add-minion-to-board
                                          create-card
                                          create-game
+                                         create-hero
                                          create-minion
                                          decrease-mana-with-card
                                          draw-card
@@ -126,6 +127,12 @@
                     (add-minion-to-board "p2" (create-minion "Defender" :id "n2" :health 2) 0)
                     (use-battlecry (create-minion "Whirlwind"))
                     (get-health "n2"))
+                1)
+           ; Test "Shield Slam"
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1" :armor 3)}])
+                    (add-minion-to-board "p2" (create-minion "Defender" :id "d" :health 4) 0)
+                    (use-battlecry (create-minion "Shield Slam" :owner-id "p1") "d")
+                    (get-health "d"))
                 1)
            )}
   ([state card]
