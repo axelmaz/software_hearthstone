@@ -24,6 +24,7 @@
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [deal-damages
+                                    get-armor
                                     get-attack
                                     get-health
                                     get-hero-id-from-player-id
@@ -92,6 +93,11 @@
                                                 (create-minion "Defender" :id "d2")]}])
                        (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
                        (is-divine-shield? "d2")))
+           ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
+           (error? (-> (create-game [{:minions [(create-minion "Defender" :id "d")]}])
+                       (add-minion-to-board "p2" (create-minion "Defender" :id "d2") 0)
+                       (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d2")
+                       (is-divine-shield? "d2")))
            ; Divine shield minions are seen as battlecry, and get a shield at this moment
            (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
                    (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
@@ -102,27 +108,23 @@
                 (create-game))
            ; Test "Blessed champion battlecry : should double the attack
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :attack 4)]
-                                   :hand   [(create-card "Blessed Champion" :id "ne")]}])
+                                   :hand    [(create-card "Blessed Champion" :id "ne")]}])
                     (use-battlecry (create-card "Blessed Champion" :id "ne") "n")
                     (get-attack "n"))
-                8))}
+                8)
+           ; Test "Earthen Ring Farseer"
+           (is= (-> (create-game)
+                    (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1"))
+                    (get-armor "h1"))
+                3)
+           )}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]
      (if battlecry-function (battlecry-function state card) state)))
   ([state card target-id]
-   (let [owner-id (:owner-id card)
-         valid-targets-list (((get-definition card) :battlecry-valid-target) state owner-id)
-         is-valid-target? (reduce (fn [a v]
-                                    (if (= (:id v) target-id)
-                                      true
-                                      a))
-                                  false
-                                  valid-targets-list)]
-     (if-not is-valid-target?
-       (error "invalid target")
-       (let [battlecry-function ((get-definition card) :battlecry)]
-         (if battlecry-function (battlecry-function state card target-id) state))
-       ))))
+   (let [battlecry-function ((get-definition card) :battlecry)]
+     (if battlecry-function (battlecry-function state card target-id) state))
+   ))
 
 (defn play-minion-card
   {:test (fn []
@@ -161,8 +163,7 @@
                     (first)
                     (:name)
                     )
-                "Nightblade")
-           )}
+                "Nightblade"))}
   [state player-id card-id position]
   (when-not (= (get-player-id-in-turn state) player-id)
     (error "The player with id " player-id " is not in turn."))
@@ -204,8 +205,8 @@
                 7)
            ;The battlecry of the card (if there is one) is applied
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]
-                                   :hand   [(create-card "Battle Rage" :id "ne")]
-                                   :deck   [(create-card "Nightblade" :id "n2")]}])
+                                   :hand    [(create-card "Battle Rage" :id "ne")]
+                                   :deck    [(create-card "Nightblade" :id "n2")]}])
                     (play-spell-card "p1" "ne")
                     (get-hand "p1")
                     (count))

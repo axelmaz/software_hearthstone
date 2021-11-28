@@ -1,8 +1,10 @@
 (ns firestone.definition.card
-  (:require [firestone.definitions :refer [add-definitions!]]
+  (:require [ysera.error :refer [error]]
+            [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
                                     get-attack
-                                    update-armor]]
+                                    update-armor
+                                    update-attack]]
             [firestone.construct :refer [draw-card
                                          draw-for-each-damaged
                                          get-minions
@@ -17,19 +19,27 @@
   {
 
    "Argent Protector"
-   {:description "Battlecry: Give a friendly minion Divine Shield."
-    :name        "Argent Protector"
-    :type        :minion
-    :mana-cost   2
-    :class       :paladin
-    :health      2
-    :set         :classic
-    :rarity      :common
-    :attack      2
-    :battlecry   (fn [state card target-minion-id]
-                   (set-divine-shield state target-minion-id))
-    :battlecry-valid-target (fn [state player-id] (get-minions state player-id))
-    }
+   {:description            "Battlecry: Give a friendly minion Divine Shield."
+    :name                   "Argent Protector"
+    :type                   :minion
+    :mana-cost              2
+    :class                  :paladin
+    :health                 2
+    :set                    :classic
+    :rarity                 :common
+    :attack                 2
+    :battlecry              (fn [state card target-minion-id]
+                              (let [owner-id (get-in card [:owner-id])
+                                    valid-target-list (get-minions state owner-id)
+                                    is-valid-target? (reduce (fn [a v]
+                                                               (if (= (:id v) target-minion-id)
+                                                                 true
+                                                                 a))
+                                                             false
+                                                             valid-target-list)]
+                                (if-not is-valid-target?
+                                  (error "invalid target")
+                                  (set-divine-shield state target-minion-id))))}
 
    "Argent Squire"
    {:attack      1
@@ -84,19 +94,17 @@
                      (draw-for-each-damaged state player-id)))}
 
    "Blessed Champion"
-   {:class       :paladin
-    :description "Double a minion's Attack."
-    :mana-cost   5
-    :name        "Blessed Champion"
-    :rarity      :rare
-    :set         :classic
-    :type        :spell
-    :battlecry   (fn [state card target-minion-id]
-                   (let [attack (get-attack state target-minion-id)
-                         double-function (fn [value] (+ value value))]
-                   (-> state
-                       (update-minion target-minion-id :attack double-function))))
-    :battlecry-valid-target (fn [state player-id] (get-minions state))}
+   {:class                  :paladin
+    :description            "Double a minion's Attack."
+    :mana-cost              5
+    :name                   "Blessed Champion"
+    :rarity                 :rare
+    :set                    :classic
+    :type                   :spell
+    :battlecry              (fn [state card target-minion-id]
+                              (let [attack (get-attack state target-minion-id)]
+                                (-> state
+                                    (update-attack target-minion-id attack))))}
 
    "Defender"
    {:name      "Defender"
@@ -116,7 +124,11 @@
     :name        "Earthen Ring Farseer"
     :rarity      :common
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry   (fn [state card]
+                   (let [owner-id (get-in card [:owner-id])]
+                     (-> state
+                         (update-armor owner-id 3))))}
 
    "King Mukla"
    {:attack      5
