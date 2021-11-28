@@ -2,6 +2,8 @@
   (:require [ysera.error :refer [error]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
+                                    update-armor
+                                    damage-random-enemy]]
                                     get-armor
                                     get-attack
                                     get-hero-id-from-player-id
@@ -14,6 +16,7 @@
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
+                                         draw-specific-card]]))
                                          draw-specific-card
                                          update-minion
                                          ]]))
@@ -154,7 +157,11 @@
     :name        "Knife Juggler"
     :rarity      :rare
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :summon-friendly-minion-do-attack-spell (fn [state]
+                                              (let [enemy-id (get-opposing-player-id state)]
+                                                (damage-random-enemy state enemy-id)))
+    }
 
    "Lorewalker Cho"
    {:attack      0
