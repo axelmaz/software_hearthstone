@@ -25,6 +25,7 @@
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [deal-damages
+                                    end-turn-effect
                                     get-armor
                                     get-attack
                                     get-health
@@ -61,6 +62,7 @@
   (let [player-change-fn {"p1" "p2"
                           "p2" "p1"}]
     (-> state
+        (end-turn-effect)
         (update :player-id-in-turn player-change-fn)
         (draw-card (get-opposing-player-id state))
         (assoc-in [:players (get-opposing-player-id state) :mana] 10))))
