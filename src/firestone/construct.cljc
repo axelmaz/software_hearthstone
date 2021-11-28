@@ -9,8 +9,7 @@
            (is= (create-hero "Jaina Proudmoore")
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
-                 :damage-taken 0
-                 :armor        0})
+                 :damage-taken 0})
            (is= (create-hero "Jaina Proudmoore" :damage-taken 10)
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
@@ -698,8 +697,8 @@
   "Spell to give a targeted minion +1/+1"
   {:test (fn []
            (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
-                    (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                    (:attack (get-minion $ "n1")))
+                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
+                      (:attack (get-minion $ "n1")))
                 5)
            (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
                       (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
@@ -710,12 +709,53 @@
                       (:damage-taken (get-minion $ "n1")))
                 1))}
   [state player-id minion-name minion-id pos]
-  (if (=(get-in state [:players player-id :minions pos :damage-taken]) 0)
+  (if (= (get-in state [:players player-id :minions pos :damage-taken]) 0)
     (-> state
-          (update-minion minion-id :health inc)
-          (update-minion minion-id :attack inc))
+        (update-minion minion-id :health inc)
+        (update-minion minion-id :attack inc))
     (as-> state $
           (update-minion $ minion-id :health inc)
           (update-minion $ minion-id :damage-taken dec)
           (update-minion $ minion-id :attack inc))
     ))
+
+(defn draw-for-each-damaged
+  "Spell to give a targeted minion +1/+1"
+  {:test (fn []
+           ;No damaged minion = no draw
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-card-from-hand "p1" "n1"))
+                nil)
+           (is= (-> (create-game [{:deck    [(create-card "Nightblade" :id "n1")]
+                                   :minions [(create-minion "Argent Protector")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-card-from-hand "p1" "n1")
+                    (count))
+                0)
+           ;if one minion is damaged then draw a card.
+           (is= (-> (create-game [{:deck    [(create-card "Nightblade" :id "n1")
+                                             (create-card "Nightblade" :id "n2")]
+                                   :minions [(create-minion "Argent Protector" :damage-taken 1)]}])
+                    (draw-for-each-damaged "p1")
+                    (get-hand "p1")
+                    (count))
+                1)
+           ;if two minions are damaged then draw two card.
+           (is= (-> (create-game [{:deck    [(create-card "Nightblade" :id "n1")
+                                             (create-card "Nightblade" :id "n2")]
+                                   :minions [(create-minion "Argent Protector" :damage-taken 1 :id "a1")
+                                             (create-minion "Argent Protector" :damage-taken 1 :id "a2")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-hand "p1")
+                    (count))
+                2))}
+  [state player-id]
+  (let [minions-player-list (get-minions state player-id)
+        function-draw-for-each-damaged (fn [state minion]
+                                         (let [damaged? (> (:damage-taken minion) 0)]
+                                           (if-not damaged?
+                                             state
+                                             (-> state
+                                                 (draw-card player-id)))))]
+    (reduce function-draw-for-each-damaged state minions-player-list)))

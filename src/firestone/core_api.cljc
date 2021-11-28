@@ -70,8 +70,7 @@
                     (use-battlecry "Novice Engineer")
                     (get-hand "p1")
                     (first)
-                    (:name)
-                    )
+                    (:name))
                 "Nightblade")
            ; We also test if the card is removed from the deck
            (empty? (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
@@ -172,6 +171,52 @@
         (add-minion-to-board player-id card position)
         (use-battlecry card)
         )))
+
+(defn play-spell-card
+  {:test (fn []
+           ; Shouldn't be able to play a card when not in turn
+           (error? (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]}]
+                                    :player-id-in-turn "p2")
+                       (play-spell-card "p1" "d")))
+           ; Shouldn't not be able to play cards not in our hand
+           (error? (-> (create-game)
+                       (play-spell-card "p1" "n")))
+           ; Shouldn't be able to play a card if not enough mana
+           (error? (-> (create-game [{:hand [(create-card "Battle Rage" :id "n")]
+                                      :mana 1}])
+                       (play-spell-card "p1" "n")))
+           ; The card should be removed from hand
+           (is (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]}])
+                   (play-spell-card "p1" "d")
+                   (get-hand "p1")
+                   (empty?)))
+           ; The mana of the player should decrease by the mana cost of the card
+           (is= (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]
+                                   :mana 9}])
+                    (play-spell-card "p1" "d")
+                    (get-mana "p1"))
+                7)
+           ;The battlecry of the card (if there is one) is applied
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]
+                                   :hand   [(create-card "Battle Rage" :id "ne")]
+                                   :deck   [(create-card "Nightblade" :id "n2")]}])
+                    (play-spell-card "p1" "ne")
+                    (get-hand "p1")
+                    (count))
+                1)
+           )}
+  [state player-id card-id]
+  (when-not (= (get-player-id-in-turn state) player-id)
+    (error "The player with id " player-id " is not in turn."))
+  (let [card (get-card-from-hand state player-id card-id)]
+    (when-not card
+      (error "The card with id " card-id " is not in the hand of the given player."))
+    (when-not (enough-mana? state player-id card)
+      (error "Not enough mana."))
+    (-> state
+        (decrease-mana-with-card player-id card)
+        (remove-card-from-hand player-id card-id)
+        (use-battlecry card))))
 
 (defn attack-minion
   {:test (fn []

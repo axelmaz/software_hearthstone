@@ -3,29 +3,30 @@
             [firestone.core :refer [deal-damages
                                     update-armor]]
             [firestone.construct :refer [draw-card
+                                         draw-for-each-damaged
                                          get-minions
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          set-divine-shield
-                                         give-minion-plus-one]]))
+                                         give-minion-plus-one
+                                         ]]))
 
 (def card-definitions
   {
 
    "Argent Protector"
-   {:description            "Battlecry: Give a friendly minion Divine Shield."
-    :name                   "Argent Protector"
-    :type                   :minion
-    :mana-cost              2
-    :class                  :paladin
-    :health                 2
-    :set                    :classic
-    :rarity                 :common
-    :attack                 2
-    :battlecry              (fn [state card target-minion-id]
-                              (set-divine-shield state target-minion-id))
-    :battlecry-valid-target (fn [state player-id]
-                              (get-minions state player-id))
+   {:description "Battlecry: Give a friendly minion Divine Shield."
+    :name        "Argent Protector"
+    :type        :minion
+    :mana-cost   2
+    :class       :paladin
+    :health      2
+    :set         :classic
+    :rarity      :common
+    :attack      2
+    :battlecry   (fn [state card target-minion-id]
+                   (set-divine-shield state target-minion-id))
+    :battlecry-valid-target (fn [state player-id] (get-minions state player-id))
     }
 
    "Argent Squire"
@@ -63,7 +64,9 @@
     :set         :classic
     :type        :spell
     :battlecry   (fn [state card pos]
-                   (let [target-minion-name (:name card) target-minion-id (:id card) player-id (get-player-id-in-turn state)]
+                   (let [target-minion-name (:name card)
+                         target-minion-id (:id card)
+                         player-id (get-player-id-in-turn state)]
                      (give-minion-plus-one state player-id target-minion-name target-minion-id pos)))}
 
    "Battle Rage"
@@ -73,7 +76,10 @@
     :name        "Battle Rage"
     :rarity      :common
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :battlecry   (fn [state card]
+                   (let [player-id (:owner-id card)]
+                     (draw-for-each-damaged state player-id)))}
 
    "Blessed Champion"
    {:class       :paladin
