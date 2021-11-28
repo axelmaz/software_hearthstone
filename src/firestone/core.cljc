@@ -185,7 +185,11 @@
            ; Should not be able to attack if you already attacked this turn
            (is-not (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :attacks-performed-this-turn 1)]}
                                      {:minions [(create-minion "Defender" :id "d")]}])
-                       (valid-attack? "p1" "n" "d"))))}
+                       (valid-attack? "p1" "n" "d")))
+           ; Ragnaros the Firelord shouldn't be able to attack
+           (is-not (-> (create-game [{:minions [(create-minion "Ragnaros the Firelord" :id "n")]}
+                                 {:minions [(create-minion "Defender" :id "d")]}])
+                   (valid-attack? "p1" "n" "d"))))}
   [state player-id attacker-id target-id]
   (let [attacker (get-minion state attacker-id)
         target (get-character state target-id)]
@@ -194,7 +198,8 @@
          (= (:player-id-in-turn state) player-id)
          (< (:attacks-performed-this-turn attacker) 1)
          (not (sleepy? state attacker-id))
-         (not= (:owner-id attacker) (:owner-id target)))))
+         (not= (:owner-id attacker) (:owner-id target))
+         (not (:effect-cant-attack (get-definition attacker))))))
 
 
 
@@ -481,6 +486,33 @@
   [state id value-damages]
   (or (deal-damages-to-minion state id value-damages)
       (deal-damages-to-heroe-by-heroe-id state id value-damages)
+      (deal-damages-to-heroe-by-player-id state id value-damages)
+      ))
+
+
+(defn end-turn-effect
+  "Apply the end-turn-effect of all the minions on the board which have one"
+  {:test (fn []
+           ; The end-turn effect of Ragnaros the Firelord is to deal 8 damages to a random enemy.
+           (is= (-> (create-game [{:minions [(create-card "Ragnaros the Firelord")]}])
+                    (end-turn-effect)
+                    (get-health "h2"))
+                22)
+           (is= (-> (create-game [{:minions [(create-card "Ragnaros the Firelord")]}
+                                  {:minions [(create-card "Nightblade" :id "n1")
+                                             (create-card "Nightblade" :id "n2" :health 12)]}])
+                    (end-turn-effect)
+                    (get-health "n2"))
+                4))}
+  [state]
+  (let [minions (get-minions state (get-player-id-in-turn state))
+        function-of-the-effect (fn [a minion]
+                                         (let [function-result (:effect-end-turn (get-definition (:name minion)))]
+                                           (if (some? function-result)
+                                             (function-result a minion)
+                                             a)))]
+    (reduce function-of-the-effect state minions)))
+
       (deal-damages-to-heroe-by-player-id state id value-damages)))
 
 (defn damage-random-enemy

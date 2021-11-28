@@ -1,11 +1,13 @@
 (ns firestone.definition.card
   (:require [ysera.error :refer [error]]
+            [ysera.random :refer [random-nth]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
                                     update-armor
                                     damage-random-enemy
                                     get-armor
                                     get-attack
+                                    get-character
                                     get-hero-id-from-player-id
                                     update-armor
                                     update-attack]]
@@ -26,27 +28,27 @@
   {
 
    "Argent Protector"
-   {:description            "Battlecry: Give a friendly minion Divine Shield."
-    :name                   "Argent Protector"
-    :type                   :minion
-    :mana-cost              2
-    :class                  :paladin
-    :health                 2
-    :set                    :classic
-    :rarity                 :common
-    :attack                 2
-    :battlecry              (fn [state card target-minion-id]
-                              (let [owner-id (get-in card [:owner-id])
-                                    valid-target-list (get-minions state owner-id)
-                                    is-valid-target? (reduce (fn [a v]
-                                                               (if (= (:id v) target-minion-id)
-                                                                 true
-                                                                 a))
-                                                             false
-                                                             valid-target-list)]
-                                (if-not is-valid-target?
-                                  (error "invalid target")
-                                  (set-divine-shield state target-minion-id))))}
+   {:description "Battlecry: Give a friendly minion Divine Shield."
+    :name        "Argent Protector"
+    :type        :minion
+    :mana-cost   2
+    :class       :paladin
+    :health      2
+    :set         :classic
+    :rarity      :common
+    :attack      2
+    :battlecry   (fn [state card target-minion-id]
+                   (let [owner-id (get-in card [:owner-id])
+                         valid-target-list (get-minions state owner-id)
+                         is-valid-target? (reduce (fn [a v]
+                                                    (if (= (:id v) target-minion-id)
+                                                      true
+                                                      a))
+                                                  false
+                                                  valid-target-list)]
+                     (if-not is-valid-target?
+                       (error "invalid target")
+                       (set-divine-shield state target-minion-id))))}
 
    "Argent Squire"
    {:attack      1
@@ -101,17 +103,17 @@
                      (draw-for-each-damaged state player-id)))}
 
    "Blessed Champion"
-   {:class                  :paladin
-    :description            "Double a minion's Attack."
-    :mana-cost              5
-    :name                   "Blessed Champion"
-    :rarity                 :rare
-    :set                    :classic
-    :type                   :spell
-    :battlecry              (fn [state card target-minion-id]
-                              (let [attack (get-attack state target-minion-id)]
-                                (-> state
-                                    (update-attack target-minion-id attack))))}
+   {:class       :paladin
+    :description "Double a minion's Attack."
+    :mana-cost   5
+    :name        "Blessed Champion"
+    :rarity      :rare
+    :set         :classic
+    :type        :spell
+    :battlecry   (fn [state card target-minion-id]
+                   (let [attack (get-attack state target-minion-id)]
+                     (-> state
+                         (update-attack target-minion-id attack))))}
 
    "Defender"
    {:name      "Defender"
@@ -201,14 +203,22 @@
                    (deal-damages state (get-opposing-player-id state) 3))}
 
    "Ragnaros the Firelord"
-   {:attack      8
-    :description "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
-    :health      8
-    :mana-cost   8
-    :name        "Ragnaros the Firelord"
-    :rarity      :legendary
-    :set         :hall-of-fame
-    :type        :minion}
+   {:attack             8
+    :description        "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
+    :health             8
+    :mana-cost          8
+    :name               "Ragnaros the Firelord"
+    :rarity             :legendary
+    :set                :hall-of-fame
+    :type               :minion
+    :effect-cant-attack true
+    :effect-end-turn    (fn [state card]
+                          (let [player-id ({"p1" "p2"
+                                            "p2" "p1"} (:owner-id card))
+                                minion-list (get-minions state player-id)
+                                minion-and-hero-list (conj minion-list (get-character state (get-hero-id-from-player-id state player-id)))
+                                random-character-id (:id ((random-nth 1 minion-and-hero-list) 1))]
+                            (deal-damages state random-character-id 8)))}
 
    "Shield Slam"
    {:class       :warrior
@@ -218,10 +228,10 @@
     :rarity      :epic
     :set         :classic
     :type        :spell
-    :battlecry (fn [state card target-minion-id]
-                 (let [owner-id (get-in card [:owner-id])
-                       number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
-                   (deal-damages state target-minion-id number-armor)))}
+    :battlecry   (fn [state card target-minion-id]
+                   (let [owner-id (get-in card [:owner-id])
+                         number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
+                     (deal-damages state target-minion-id number-armor)))}
 
    "Snake"
    {:name      "Snake"
@@ -240,9 +250,9 @@
     :name        "Whirlwind"
     :set         :basic
     :type        :spell
-    :battlecry (fn [state card]
-                 (let [minions-list (get-minions state)
-                       deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
-                   (reduce deal-one-damage state minions-list)))
-   }})
+    :battlecry   (fn [state card]
+                   (let [minions-list (get-minions state)
+                         deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                     (reduce deal-one-damage state minions-list)))
+    }})
 (add-definitions! card-definitions)
