@@ -1,6 +1,7 @@
 (ns firestone.definition.card
   (:require [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
+                                    get-attack
                                     update-armor]]
             [firestone.construct :refer [draw-card
                                          draw-for-each-damaged
@@ -9,6 +10,7 @@
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
+                                         update-minion
                                          ]]))
 
 (def card-definitions
@@ -88,7 +90,13 @@
     :name        "Blessed Champion"
     :rarity      :rare
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :battlecry   (fn [state card target-minion-id]
+                   (let [attack (get-attack state target-minion-id)
+                         double-function (fn [value] (+ value value))]
+                   (-> state
+                       (update-minion target-minion-id :attack double-function))))
+    :battlecry-valid-target (fn [state player-id] (get-minions state))}
 
    "Defender"
    {:name      "Defender"

@@ -99,7 +99,13 @@
            ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
            (is= (-> (create-game)
                     (use-battlecry "Defender"))
-                (create-game)))}
+                (create-game))
+           ; Test "Blessed champion battlecry : should double the attack
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :attack 4)]
+                                   :hand   [(create-card "Blessed Champion" :id "ne")]}])
+                    (use-battlecry (create-card "Blessed Champion" :id "ne") "n")
+                    (get-attack "n"))
+                8))}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]
      (if battlecry-function (battlecry-function state card) state)))
