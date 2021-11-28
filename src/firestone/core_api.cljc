@@ -27,7 +27,8 @@
                                     get-attack
                                     get-health
                                     get-hero-id-from-player-id
-                                    valid-attack?]]))
+                                    valid-attack?
+                                    summon-minions-on-board-spell]]))
 
 (defn end-turn
   {:test (fn []
@@ -168,6 +169,7 @@
     (-> state
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
+        (summon-minions-on-board-spell)
         (add-minion-to-board player-id card position)
         (use-battlecry card)
         )))

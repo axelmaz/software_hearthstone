@@ -1,7 +1,8 @@
 (ns firestone.definition.card
   (:require [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
-                                    update-armor]]
+                                    update-armor
+                                    damage-random-enemy]]
             [firestone.construct :refer [draw-card
                                          draw-for-each-damaged
                                          get-minions
@@ -9,8 +10,7 @@
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
-                                         draw-specific-card
-                                         ]]))
+                                         draw-specific-card]]))
 
 (def card-definitions
   {
@@ -132,7 +132,11 @@
     :name        "Knife Juggler"
     :rarity      :rare
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :summon-friendly-minion-do-attack-spell (fn [state]
+                                              (let [enemy-id (get-opposing-player-id state)]
+                                                (damage-random-enemy state enemy-id)))
+    }
 
    "Lorewalker Cho"
    {:attack      0

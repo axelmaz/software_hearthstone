@@ -213,6 +213,22 @@
                                       a)))]
     (reduce function-damaged-minion state minions-of-the-player)))
 
+(defn summon-minions-on-board-spell
+  "Deals 1 damage to a random enemy whenever a friendly card is summoned"
+  {:test (fn []
+           (is= (as-> (create-game [{:minions [(create-card "Knife Juggler" :id "k")]
+                                   :hand [(create-card "Defender" :id "d")]}]) $
+                    (get-in (summon-minions-on-board-spell $) [:players "p2" :hero :damage-taken]))
+                1))}
+  [state]
+  (let [minions (get-minions state (get-player-id-in-turn state))
+        function-summoned-minion-spell (fn [a minion]
+                                  (let [function-result (:summon-friendly-minion-do-attack-spell (get-definition (:name minion)))]
+                                    (if (some? function-result)
+                                      (function-result a)
+                                      a)))]
+    (reduce function-summoned-minion-spell state minions)))
+
 (defn update-armor
   "Update (increase or decrease) the armor of the hero of the given player-id."
   {:test (fn []
@@ -379,5 +395,17 @@
   [state id value-damages]
   (or (deal-damages-to-minion state id value-damages)
       (deal-damages-to-heroe-by-heroe-id state id value-damages)
-      (deal-damages-to-heroe-by-player-id state id value-damages)
-      ))
+      (deal-damages-to-heroe-by-player-id state id value-damages)))
+
+(defn damage-random-enemy
+  "Add random random seed in the future"
+  ;{:test (fn []
+  ;         (is= (as-> (create-game [{:minions [(create-minion "Defender" :id "d" :damage-taken 0) (create-minion "Argent Protector" :id "a" :damage-taken 0)]
+  ;                                   :hero (create-hero "Jaina Proudmoore" :id "h1")}]) $
+  ;                    (get-in (damage-random-enemy $ "p1") [:players "p1" :minions]))
+  ;              1))}
+  [state enemy-id]
+  (let [random-id (rand-int (+ (count (get-minions state enemy-id))1)) count (count (get-minions state enemy-id))]
+    (if (= random-id count)
+      (deal-damages state (get-in state [:players enemy-id :hero :id]) 1)
+      (deal-damages state (get-in state [:players enemy-id :minions random-id :id]) 1))))
