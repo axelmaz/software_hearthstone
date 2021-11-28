@@ -64,6 +64,26 @@
   ([state id]
    (get-armor (get-character state id))))
 
+(defn get-total-health
+  "Returns the total-health of the character with the given id."
+  {:test (fn []
+           ; If no particular attack value we look in the definition
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-total-health "n"))
+                4)
+           ;else we take the one of the particular minion
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45)]}])
+                    (get-total-health "n"))
+                45)
+           )}
+  ([character]
+   (let [definition (get-definition character)]
+     (or (:health character) (:health definition))))
+
+  ([state id]
+  (let [character (get-character state id)]
+    (get-total-health character))))
+
 (defn get-health
   "Returns the health of the character."
   {:test (fn []
@@ -90,25 +110,40 @@
            ; Hero in a state
            (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
                     (get-health "h1"))
-                30))}
+                30)
+           ;If a minion had a bonus on its health, should be taken in consideration
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45)]}])
+                    (get-health "n"))
+                45)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45 :damage-taken 20)]}])
+                    (get-health "n"))
+                25)
+           )}
   ([character]
    {:pre [(map? character) (contains? character :damage-taken)]}
    (let [definition (get-definition character)]
-     (- (:health definition) (:damage-taken character))))
+     (- (get-total-health character) (:damage-taken character))))
   ([state id]
    (get-health (get-character state id))))
 
-
 (defn get-attack
-  "Returns the attack of the minion with the given id."
+  "Returns the attack of the character with the given id."
   {:test (fn []
+           ; If no particular attack value we look in the definition
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
                     (get-attack "n"))
-                4))}
-  [state id]
-  (let [minion (get-minion state id)
-        definition (get-definition minion)]
-    (:attack definition)))
+                4)
+           ;else we take the one of the particular minion
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :attack 45)]}])
+                    (get-attack "n"))
+                45)
+           )}
+  ([character]
+   (let [definition (get-definition character)]
+     (or (:attack character) (:attack definition))))
+  ([state id]
+  (let [character (get-character state id)]
+    (get-attack character))))
 
 
 (defn sleepy?
@@ -251,6 +286,57 @@
   (if (= 0 (get-armor state (get-hero-id-from-player-id state player-id)))
     (update-in state [:players player-id :hero] assoc :armor value)
     (update-in state [:players player-id :hero :armor] + value)))
+
+(defn update-attack
+  "Update (increase or decrease) the attack of the minion of the given minion-id."
+  {:test (fn []
+           ; If the attack is not yet defined in the minion
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]}])
+                    (update-attack "n" +2)
+                    (get-attack "n"))
+                6)
+           ;If it is already defined
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :attack 7)]}])
+                    (update-attack "n" +2)
+                    (get-attack "n"))
+                9)
+           ;Decrease
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :attack 7)]}])
+                    (update-attack "n" -2)
+                    (get-attack "n"))
+                5))}
+  [state minion-id value]
+  (let [old-attack (get-attack state minion-id)
+        update-function (fn [v] (+ v value))
+        new-attack (update-function old-attack)]
+    (-> state
+        (update-minion minion-id :attack new-attack))))
+
+(defn update-total-health
+  "Update (increase or decrease) the total-health of the minion of the given minion-id."
+  {:test (fn []
+           ; If the total-health is not yet defined in the minion
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]}])
+                    (update-total-health "n" +2)
+                    (get-total-health "n"))
+                6)
+           ;If it is already defined
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :health 7)]}])
+                    (update-total-health "n" +2)
+                    (get-total-health "n"))
+                9)
+           ;Decrease
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :health 7)]}])
+                    (update-total-health "n" -2)
+                    (get-total-health "n"))
+                5)
+           )}
+  [state minion-id value]
+  (let [old-health (get-total-health state minion-id)
+        update-function (fn [v] (+ v value))
+        new-health (update-function old-health)]
+    (-> state
+        (update-minion minion-id :health new-health))))
 
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
