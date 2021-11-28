@@ -2,7 +2,9 @@
   (:require [ysera.error :refer [error]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
+                                    get-armor
                                     get-attack
+                                    get-hero-id-from-player-id
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [draw-card
@@ -199,7 +201,11 @@
     :name        "Shield Slam"
     :rarity      :epic
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :battlecry (fn [state card target-minion-id]
+                 (let [owner-id (get-in card [:owner-id])
+                       number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
+                   (deal-damages state target-minion-id number-armor)))}
 
    "Snake"
    {:name      "Snake"
@@ -217,8 +223,10 @@
     :mana-cost   1
     :name        "Whirlwind"
     :set         :basic
-    :type        :spell}
-
-   })
-
+    :type        :spell
+    :battlecry (fn [state card]
+                 (let [minions-list (get-minions state)
+                       deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                   (reduce deal-one-damage state minions-list)))
+   }})
 (add-definitions! card-definitions)
