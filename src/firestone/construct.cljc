@@ -759,3 +759,16 @@
                                              (-> state
                                                  (draw-card player-id)))))]
     (reduce function-draw-for-each-damaged state minions-player-list)))
+
+(defn draw-specific-card
+  "Make the player get a specific card 'x' many times"
+  {:test (fn []
+           (is= (as-> (create-game) $
+                      (draw-specific-card $ "p2" "Bananas" 2)
+                      (count (get-in $ [:players "p2" :hand])))
+                2))}
+  [state player-id card amount]
+  (loop [x 1 s state]
+    (if (< x amount)
+      (recur (+ x 1) (add-card-to s player-id card :hand))
+      (add-card-to s player-id card :hand))))
