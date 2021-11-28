@@ -3,6 +3,8 @@
             [ysera.random :refer [random-nth]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
+                                    update-armor
+                                    damage-random-enemy
                                     get-armor
                                     get-attack
                                     get-character
@@ -16,8 +18,11 @@
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
+                                         draw-specific-card
+                                         draw-specific-card
                                          update-minion
-                                         ]]))
+                                         add-card-to-hand
+                                         create-card]]))
 
 (def card-definitions
   {
@@ -142,7 +147,10 @@
     :name        "King Mukla"
     :rarity      :legendary
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry   (fn [state]
+                   (let [player-id (get-opposing-player-id state)]
+                     (draw-specific-card state player-id "Bananas" 2)))}
 
    "Knife Juggler"
    {:attack      3
@@ -152,7 +160,11 @@
     :name        "Knife Juggler"
     :rarity      :rare
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :summon-friendly-minion-do-attack-spell (fn [state]
+                                              (let [enemy-id (get-opposing-player-id state)]
+                                                (damage-random-enemy state enemy-id)))
+    }
 
    "Lorewalker Cho"
    {:attack      0
@@ -162,7 +174,11 @@
     :name        "Lorewalker Cho"
     :rarity      :legendary
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :copy-spell-card-to-opposite-player (fn [state card]
+                                          (let [opposing-id (get-opposing-player-id state)]
+                                            (add-card-to-hand state opposing-id (create-card card))))
+    }
 
    "Novice Engineer"
    {:name        "Novice Engineer"
