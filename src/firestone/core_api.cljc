@@ -30,7 +30,8 @@
                                     get-health
                                     get-hero-id-from-player-id
                                     valid-attack?
-                                    summon-minions-on-board-spell]]))
+                                    summon-minions-on-board-spell
+                                    copy-spell-of-opposite-player]]))
 
 (defn end-turn
   {:test (fn []
@@ -195,6 +196,7 @@
         (remove-card-from-hand player-id card-id)
         (summon-minions-on-board-spell)
         (add-minion-to-board player-id card position)
+        (copy-spell-of-opposite-player (card :name))
         (use-battlecry card)
         )))
 

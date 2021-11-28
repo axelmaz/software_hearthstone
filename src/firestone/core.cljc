@@ -495,3 +495,22 @@
     (if (= random-id count)
       (deal-damages state (get-in state [:players enemy-id :hero :id]) 1)
       (deal-damages state (get-in state [:players enemy-id :minions random-id :id]) 1))))
+
+(defn copy-spell-of-opposite-player
+  "Copies the spell card of the opposite player when used"
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-minion "Lorewalker Cho" :id "lo")]}])
+                    (copy-spell-of-opposite-player "Shield Slam")
+                    (get-hand "p2").
+                    (first):name)
+                "Shield Slam"))}
+  [state card]
+  (if (=((get-definition card):type) :spell)
+  (let [minions (get-minions state (get-player-id-in-turn state))
+        function-summoned-minion-spell (fn [a minion]
+                                         (let [function-result (:copy-spell-card-to-opposite-player (get-definition (:name minion)))]
+                                           (if (some? function-result)
+                                             (function-result a card)
+                                             a)))]
+    (reduce function-summoned-minion-spell state minions))
+  state))
