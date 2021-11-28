@@ -9,6 +9,7 @@
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
+                                         draw-specific-card
                                          ]]))
 
 (def card-definitions
@@ -118,7 +119,10 @@
     :name        "King Mukla"
     :rarity      :legendary
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry   (fn [state]
+                   (let [player-id (get-opposing-player-id state)]
+                     (draw-specific-card state player-id "Bananas" 2)))}
 
    "Knife Juggler"
    {:attack      3
