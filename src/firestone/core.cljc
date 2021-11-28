@@ -513,7 +513,7 @@
                                              a)))]
     (reduce function-of-the-effect state minions)))
 
-      (deal-damages-to-heroe-by-player-id state id value-damages)))
+      ;(deal-damages-to-heroe-by-player-id state id value-damages)))
 
 (defn damage-random-enemy
   "Add random random seed in the future"
@@ -533,7 +533,7 @@
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-minion "Lorewalker Cho" :id "lo")]}])
                     (copy-spell-of-opposite-player "Shield Slam")
-                    (get-hand "p2").
+                    (get-hand "p2")
                     (first):name)
                 "Shield Slam"))}
   [state card]
