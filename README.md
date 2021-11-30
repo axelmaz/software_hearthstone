@@ -37,6 +37,52 @@ and then everything is fine.
 However, when starting a new REPL, you must load the definitions before being able to run the engine tests.
 
 
+### Our functions
+1. In construct
+   - create-hero [name & kvs]
+   - create-card [name & kvs]
+   - create-minion [name & kvs]
+   - create-empty-state [ ] [heroes]
+   - get-player [state player-id]
+   - get-player-id-in-turn [state]
+   - get-opposing-player-id [state]
+   - get-minions [state] [state player-id]
+   - get-deck [state player-id]
+   - get-hand [state player-id]
+   - generate-id [state]
+   - generate-time-id [state]
+   - add-minion-to-board [state player-id minion position]
+   - add-minions-to-board [state player-id minions]
+   - add-card-to [state player-id card-or-name place]
+   - add-card-to-deck [state player-id card]
+   - add-card-to-hand [state player-id card]
+   - add-cards-to-deck [state player-id cards]
+   - add-cards-to-hand [state player-id cards]
+   - create-game [data & kvs] []
+   - get-minion [state id]
+   - get-players [state]
+   - get-heroes [state]
+   - replace-minion [state new-minion]
+   - update-minion [state id key function-or-value]
+   - remove-minion [state id]
+   - remove-minions [state & ids]
+   - remove-card-from-hand [state player-id card-id]
+   - remove-card-from-deck [state player-id card-id]
+   - get-card-from-hand [state player-id card-id]
+   - get-mana [state player-id]
+   - enough-mana? [state player-id card] ;TODO : add possibility of use for power
+   - decrease-mana [state player-id decrease-number]
+   - decrease-mana-with-card [state player-id card] ;TODO : put it in decrease-mana with a map in argument
+   - draw-card [state player-id]
+   - set-divine-shield [state minion-id] ;TODO : to modify
+   - remove-divine-shield [state minion-id]
+   - is-divine-shield? [state minion-id]
+   - give-minion-plus-one [state player-id minion-name minion-id pos] TODO : useless minion-name + maybe create a + attack, +health functions, and 1 as argument
+   - draw-for-each-damaged [state player-id] ;TODO : create draw-cards, with how many
+   - draw-specific-card [state player-id card amount] ;TODO : that's add to hand and not draw
+
+
+
 
 
 
