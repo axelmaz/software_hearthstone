@@ -8,10 +8,10 @@
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
+                                         add-specific-cards-to-hand
                                          create-card
                                          draw-card
                                          draw-for-each-damaged
-                                         draw-specific-card
                                          friendly?
                                          get-armor
                                          get-attack
@@ -146,8 +146,9 @@
     :set         :classic
     :type        :minion
     :battlecry   (fn [state other-args]
-                   (let [player-id (get-opposing-player-id state)]
-                     (draw-specific-card state player-id "Bananas" 2)))} ; TODO replace name : not draw but "take"
+                   (let [card (:played-card other-args)
+                         opponent-player-id (get-opposing-player-id state (:owner-id card))]
+                     (add-specific-cards-to-hand state opponent-player-id "Bananas" 2)))}
 
    "Knife Juggler"
    {:attack               3

@@ -644,6 +644,18 @@
                     (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1") "d")
                     (get-health "d"))
                 8)
+           ; Test King Mukla
+           (is= (-> (create-game)
+                    (use-battlecry (create-card "King Mukla" :owner-id "p1"))
+                    (get-hand "p2")
+                    (first)
+                    (:name))
+                "Bananas")
+           (is= (-> (create-game)
+                    (use-battlecry (create-card "King Mukla" :owner-id "p1"))
+                    (get-hand "p2")
+                    (count))
+                2)
            )}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]

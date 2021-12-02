@@ -324,6 +324,19 @@
   [state player-id card]
   (add-card-to state player-id card :hand))
 
+(defn add-specific-cards-to-hand
+  "add one card to the hand of a player a certain number of time"
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (add-specific-cards-to-hand "p1" "Nightblade" 5)
+                    (get-hand "p1")
+                    (count))
+                5))}
+  [state player-id card number-of-cards]
+  (if (<= number-of-cards 0)
+    state
+    (add-specific-cards-to-hand (add-card-to-hand state player-id card) player-id card (- number-of-cards 1))))
+
 
 (defn add-cards-to-deck
   {:test (fn []
@@ -518,7 +531,7 @@
    (let [players (map :id (get-players state))
          p1-id (first players)
          p2-id (first (rest players))]
-     (if (= p1-id id )
+     (if (= p1-id id)
        p2-id
        p1-id))))
 
@@ -550,13 +563,13 @@
                     )
                 "Nightblade"))}
   ([state player-targeted-id]
-  (let [minion-list (get-minions state player-targeted-id)
-        minion-and-hero-list (conj minion-list (get-character state (get-hero-id-from-player-id state player-targeted-id)))
-        random-character ((random-nth 1 minion-and-hero-list) 1)]
-    random-character))
+   (let [minion-list (get-minions state player-targeted-id)
+         minion-and-hero-list (conj minion-list (get-character state (get-hero-id-from-player-id state player-targeted-id)))
+         random-character ((random-nth 1 minion-and-hero-list) 1)]
+     random-character))
   ([state]
    (let [minion-list (get-minions state)
-         function-append (fn [a,v] (conj a v))
+         function-append (fn [a, v] (conj a v))
          minion-and-hero-list (reduce function-append minion-list (get-heroes state))
          random-character ((random-nth 12 (vec minion-and-hero-list)) 1)]
      random-character
@@ -731,10 +744,10 @@
                     (:damage-taken))
                 1)
            (is= (as-> (create-game [{:minions [(create-minion "Nightblade" :id "n")
-                                             (create-minion "Nightblade" :id "n2")]}]) $
-                    (update-minions $ (map :id (get-minions $ "p1")) :damage-taken 2)
-                    (get-minion $ "n")
-                    (:damage-taken $))
+                                               (create-minion "Nightblade" :id "n2")]}]) $
+                      (update-minions $ (map :id (get-minions $ "p1")) :damage-taken 2)
+                      (get-minion $ "n")
+                      (:damage-taken $))
                 2))}
   [state ids key function-or-value]
   (reduce (fn [s id] (update-minion s id key function-or-value)) state ids))
@@ -959,25 +972,13 @@
   [state player-id]
   (let [minions-player-list (get-minions state player-id)
         function-how-many-damaged (fn [number minion]
-                                         (let [damaged? (> (:damage-taken minion) 0)]
-                                           (if-not damaged?
-                                             number
-                                             (inc number))))
+                                    (let [damaged? (> (:damage-taken minion) 0)]
+                                      (if-not damaged?
+                                        number
+                                        (inc number))))
         number-damaged (reduce function-how-many-damaged 0 minions-player-list)]
     (draw-cards state player-id number-damaged)))
 
-(defn draw-specific-card
-  "Make the player get a specific card 'x' many times"
-  {:test (fn []
-           (is= (as-> (create-game) $
-                      (draw-specific-card $ "p2" "Bananas" 2)
-                      (count (get-in $ [:players "p2" :hand])))
-                2))}
-  [state player-id card amount]
-  (loop [x 1 s state]
-    (if (< x amount)
-      (recur (+ x 1) (add-card-to s player-id card :hand))
-      (add-card-to s player-id card :hand))))
 
 (defn get-owner-id
   "give the id of the owner of the character"
@@ -1007,10 +1008,10 @@
         p2 (first (rest players-id))
         heroes-id (map :id (get-heroes state))
         minion (get-minion state id)
-        hand-p1-id (map :id(get-hand state p1))
-        hand-p2-id (map :id(get-hand state p2))
-        deck-p1-id (map :id(get-deck state p1))
-        deck-p2-id (map :id(get-deck state p2))]
+        hand-p1-id (map :id (get-hand state p1))
+        hand-p2-id (map :id (get-hand state p2))
+        deck-p1-id (map :id (get-deck state p1))
+        deck-p2-id (map :id (get-deck state p2))]
     (if (some #{id} players-id)
       id
       (if (some #{id} heroes-id)
