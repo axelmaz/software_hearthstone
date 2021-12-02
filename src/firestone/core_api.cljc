@@ -32,11 +32,12 @@
             [firestone.core :refer [cast-spell
                                     deal-damages
                                     listener-effect
+                                    start-turn-reset
                                     summon-minion
                                     use-battlecry
                                     valid-attack?]]))
 
-(defn end-turn                                              ;TODO : reset attacked-this-turn
+(defn end-turn
   {:test (fn []
            (is= (-> (create-game)
                     (end-turn "p1")
@@ -59,7 +60,13 @@
                     (end-turn "p1")
                     (end-turn "p2")
                     (get-mana "p1"))
-                10))}
+                10)
+           (is= (-> (create-game [{}
+                                  {:minions [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1)]}])
+                    (end-turn "p1")
+                    (get-minion "n1")
+                    (:attacks-performed-this-turn))
+                0))}
   [state player-id]
   (when-not (= (get-player-id-in-turn state) player-id)
     (error "The player with id " player-id " is not in turn."))
@@ -70,7 +77,7 @@
         (update :player-id-in-turn player-change-fn)
         (listener-effect :effect-start-turn)
         (draw-card (get-opposing-player-id state))
-        (assoc-in [:players (get-opposing-player-id state) :mana] 10))))
+        (start-turn-reset))))
 
 (defn play-minion-card
   {:test (fn []
@@ -182,11 +189,11 @@
                 3)
            ;The attacker should loose health points
            (is= (-> (create-game)
-                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne" :health 6) 0)
                     (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
                     (attack-minion "p1" "ne" "nb")
                     (get-health "ne"))
-                -3)
+                2)
            ;The attack has to be valid
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)

@@ -31,7 +31,8 @@
                                          remove-divine-shield
                                          remove-minion
                                          set-divine-shield
-                                         update-minion]]))
+                                         update-minion
+                                         update-minions]]))
 
 
 (defn sleepy?
@@ -653,3 +654,20 @@
      (if battlecry-function
        (battlecry-function state {:played-card card :target-id target-id}) state))
    ))
+
+(defn start-turn-reset
+  "reset the stuff for the new turn : mana, attacks-performed-this-turn"
+  {:test (fn []
+           (is= (-> (create-game [{:mana 6}])
+                    (start-turn-reset)
+                    (get-mana "p1"))
+                10)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1)]}])
+                    (start-turn-reset)
+                    (get-minion "n1")
+                    (:attacks-performed-this-turn))
+                0))}
+  [state]
+  (-> state
+    (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
+    (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))
