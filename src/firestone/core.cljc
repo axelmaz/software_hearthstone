@@ -119,7 +119,13 @@
                     (listener-effect :effect-minion-takes-damage {:minion-takes-damage (create-minion "Nightblade" :id "n" :owner-id "p1")})
                     (get-armor "h1"))
                 0)
-           )}
+           ; :effect-cast-spell effect test
+           (is= (-> (create-game [{:minions [(create-card "Lorewalker Cho" :id "a")]}])
+                    (listener-effect :effect-cast-spell {:card-spell-casted (create-card "Battle Rage" :id "b" :owner-id "p1")})
+                    (get-hand "p2")
+                    (first)
+                    (:name))
+                "Battle Rage"))}
   ([state event other-args]
    (let [minions (get-minions state (get-player-id-in-turn state))
          function-of-the-effect (fn [a minion]
@@ -357,42 +363,23 @@
            ; With this seed, it is the Nightblade that take a damage.
            (is= (-> (create-game [{:minions [(create-minion "Armorsmith" :id "a")
                                              (create-minion "Nightblade" :id "n")]
-                                     :hero   (create-hero "Jaina Proudmoore" :id "h1")}])
-                    (damage-random  1 "p1")
+                                   :hero    (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (damage-random 1 "p1")
                     (get-health "n"))
                 3)
            ; With this seed, it is the h2 that take a damage.
            (is= (-> (create-game [{:minions [(create-minion "Armorsmith" :id "a")
                                              (create-minion "Nightblade" :id "n")]
-                                   :hero   (create-hero "Jaina Proudmoore" :id "h1")}])
-                    (damage-random  1)
+                                   :hero    (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (damage-random 1)
                     (get-health "h2"))
                 29))}
   ([state value-damages player-targeted-id]
-  (let [random-id (:id(get-random-character state player-targeted-id))]
-    (deal-damages state random-id value-damages)))
+   (let [random-id (:id (get-random-character state player-targeted-id))]
+     (deal-damages state random-id value-damages)))
   ([state value-damages]
-   (let [random-id (:id(get-random-character state))]
+   (let [random-id (:id (get-random-character state))]
      (deal-damages state random-id value-damages))))
-
-(defn copy-spell-of-opposite-player
-  "Copies the spell card of the opposite player when used"
-  {:test (fn []
-           (is= (-> (create-game [{:minions [(create-minion "Lorewalker Cho" :id "lo")]}])
-                    (copy-spell-of-opposite-player "Shield Slam")
-                    (get-hand "p2")
-                    (first) :name)
-                "Shield Slam"))}
-  [state card]
-  (if (= ((get-definition card) :type) :spell)
-    (let [minions (get-minions state (get-player-id-in-turn state))
-          function-summoned-minion-spell (fn [a minion]
-                                           (let [function-result (:copy-spell-card-to-opposite-player (get-definition (:name minion)))]
-                                             (if (some? function-result)
-                                               (function-result a card)
-                                               a)))]
-      (reduce function-summoned-minion-spell state minions))
-    state))
 
 (defn summon-minion
   "Summon the given minion card to the board at the given position (and play the effect if there is one"
@@ -415,16 +402,72 @@
       (add-minion-to-board player-id card position)
       (listener-effect :effect-summon-minion)))
 
+(defn cast-spell
+  "Summon the given minion card to the board at the given position (and play the effect if there is one"
+  {:test (fn []
+           ; play the listener effect corresponding
+           (is= (-> (create-game [{:minions [(create-minion "Lorewalker Cho")]}])
+                    (cast-spell (create-card "Battle Rage" :owner-id "p1"))
+                    (get-hand "p2")
+                    (first)
+                    (:name))
+                "Battle Rage")
+           ; effect of battle rage should be done
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :damage-taken 1)]
+                                   :deck    [(create-card "Defender")]}])
+                    (cast-spell (create-card "Battle Rage" :owner-id "p1"))
+                    (get-hand "p1")
+                    (first)
+                    (:name))
+                "Defender")
+           ; effect of Whirlwind should be done
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (cast-spell (create-card "Whirlwind" :owner-id "p1"))
+                    (get-health "n"))
+                3)
+           ; effect of Shield Slam should be done
+           (is= (as-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 2)}
+                                  {:minions [(create-minion "Nightblade" :id "n")]}]) $
+                    (cast-spell $ (create-card "Shield Slam" :owner-id "p1") "n")
+                    (get-health $ "n"))
+                2)
+           ; Test "Blessed champion effect : should double the attack
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n")]
+                                   :hand    [(create-card "Blessed Champion" :id "ne")]}])
+                    (cast-spell (create-card "Blessed Champion") "n")
+                    (get-attack "n"))
+                8)
+           ; Test "Bananas effect : should give +1/+1
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n")]}])
+                    (cast-spell (create-card "Bananas") "n")
+                    (get-attack "n"))
+                5)
+           )}
+  ([state card]
+  (let [spell-function ((get-definition card) :effect-spell)]
+    (if spell-function
+      (-> state
+          (listener-effect :effect-cast-spell {:card-spell-casted card})
+          (spell-function {:spell-played card}))
+      (listener-effect state :effect-cast-spell {:card-spell-casted card}))))
+  ([state card target-minion-id]
+   (let [spell-function (:effect-spell (get-definition card))]
+     (if spell-function
+       (-> state
+           (listener-effect :effect-cast-spell {:card-spell-casted card})
+           (spell-function {:target-minion-id target-minion-id :spell-played card}))
+       (listener-effect state :effect-cast-spell {:card-spell-casted card})))))
+
 (defn give-minion-plus-attack-and-health
   "Give a targeted minion +value/+value"
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                      (give-minion-plus-attack-and-health "n1" 1)
-                      (get-attack "n1"))
+                    (give-minion-plus-attack-and-health "n1" 1)
+                    (get-attack "n1"))
                 5)
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                      (give-minion-plus-attack-and-health "n1" 1)
-                      (get-total-health "n1"))
+                    (give-minion-plus-attack-and-health "n1" 1)
+                    (get-total-health "n1"))
                 5))}
   [state minion-id value]
   (-> state

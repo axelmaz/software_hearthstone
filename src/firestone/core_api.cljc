@@ -30,7 +30,7 @@
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
-            [firestone.core :refer [copy-spell-of-opposite-player
+            [firestone.core :refer [cast-spell
                                     deal-damages
                                     listener-effect
                                     summon-minion
@@ -116,33 +116,11 @@
            (is= (-> (create-game)
                     (use-battlecry "Defender"))
                 (create-game))
-           ; Test "Blessed champion battlecry : should double the attack
-           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1 :attack 4)]
-                                   :hand    [(create-card "Blessed Champion" :id "ne")]}])
-                    (use-battlecry (create-card "Blessed Champion" :id "ne") "n")
-                    (get-attack "n"))
-                8)
            ; Test "Earthen Ring Farseer"
            (is= (-> (create-game)
                     (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1"))
                     (get-armor "h1"))
                 3)
-           ; Test "Whirlwind"
-           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
-                    (use-battlecry (create-minion "Whirlwind"))
-                    (get-health "n"))
-                3)
-           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
-                    (add-minion-to-board "p2" (create-minion "Defender" :id "n2" :health 2) 0)
-                    (use-battlecry (create-minion "Whirlwind"))
-                    (get-health "n2"))
-                1)
-           ; Test "Shield Slam"
-           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1" :armor 3)}])
-                    (add-minion-to-board "p2" (create-minion "Defender" :id "d" :health 4) 0)
-                    (use-battlecry (create-minion "Shield Slam" :owner-id "p1") "d")
-                    (get-health "d"))
-                1)
            )}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]
@@ -202,7 +180,6 @@
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
         (summon-minion player-id card position)
-        (copy-spell-of-opposite-player (card :name))
         (use-battlecry card)
         )))
 
@@ -230,11 +207,11 @@
                     (play-spell-card "p1" "d")
                     (get-mana "p1"))
                 7)
-           ;The effect (battlecry) of the card (if there is one) is applied
+           ;The effect of the spell (if there is one) is applied
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]
-                                   :hand    [(create-card "Battle Rage" :id "ne")]
+                                   :hand    [(create-card "Battle Rage" :id "br")]
                                    :deck    [(create-card "Nightblade" :id "n2")]}])
-                    (play-spell-card "p1" "ne")
+                    (play-spell-card "p1" "br")
                     (get-hand "p1")
                     (count))
                 1)
@@ -248,9 +225,9 @@
     (when-not (enough-mana? state player-id card)
       (error "Not enough mana."))
     (-> state
-        (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
-        (use-battlecry card))))
+        (decrease-mana-with-card player-id card)
+        (cast-spell card))))
 
 (defn attack-minion
   {:test (fn []

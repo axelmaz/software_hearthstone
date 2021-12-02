@@ -37,9 +37,9 @@
     :rarity      :common
     :attack      2
     :battlecry   (fn [state played-card target-minion-id]
-                     (if-not (friendly? state (:id played-card) target-minion-id)
-                       (error "invalid target")
-                       (set-divine-shield state target-minion-id)))}
+                   (if-not (friendly? state (:id played-card) target-minion-id)
+                     (error "invalid target")
+                     (set-divine-shield state target-minion-id)))}
 
    "Argent Squire"
    {:attack      1
@@ -55,57 +55,59 @@
                      (set-divine-shield state target-minion-id)))}
 
    "Armorsmith"
-   {:description                              "Whenever a friendly minion takes damage gain 1 Armor."
-    :name                                     "Armorsmith"
-    :type                                     :minion
-    :mana-cost                                2
-    :class                                    :warrior
-    :health                                   4
-    :set                                      :classic
-    :rarity                                   :rare
-    :attack                                   1
+   {:description                "Whenever a friendly minion takes damage gain 1 Armor."
+    :name                       "Armorsmith"
+    :type                       :minion
+    :mana-cost                  2
+    :class                      :warrior
+    :health                     4
+    :set                        :classic
+    :rarity                     :rare
+    :attack                     1
     :effect-minion-takes-damage (fn [state other-args]
-                                                (let [minion-play-effect-id (:id(:minion-play-effect other-args))
-                                                      minion-takes-damage-id (:id(:minion-takes-damage other-args))]
-                                                  (if (friendly? state minion-play-effect-id minion-takes-damage-id) ;test if it is a friendly minion
-                                                    (update-armor state (get-owner-id state minion-takes-damage-id) 1)
-                                                    state)))}
+                                  (let [minion-play-effect-id (:id (:minion-play-effect other-args))
+                                        minion-takes-damage-id (:id (:minion-takes-damage other-args))]
+                                    (if (friendly? state minion-play-effect-id minion-takes-damage-id) ;test if it is a friendly minion
+                                      (update-armor state (get-owner-id state minion-takes-damage-id) 1)
+                                      state)))}
 
 
    "Bananas"
-   {:description "Give a minion +1/+1."
-    :mana-cost   1
-    :name        "Bananas"
-    :set         :classic
-    :type        :spell
-    :battlecry   (fn [state target-minion]
-                   (let [target-minion-id (:id target-minion)]
-                     (give-minion-plus-attack-and-health state target-minion-id 1)))}
+   {:description  "Give a minion +1/+1."
+    :mana-cost    1
+    :name         "Bananas"
+    :set          :classic
+    :type         :spell
+    :effect-spell (fn [state other-args]
+                    (let [target-minion-id (:target-minion-id other-args)]
+                      (give-minion-plus-attack-and-health state target-minion-id 1)))}
 
    "Battle Rage"
-   {:class       :warrior
-    :description "Draw a card for each damaged friendly character."
-    :mana-cost   2
-    :name        "Battle Rage"
-    :rarity      :common
-    :set         :classic
-    :type        :spell
-    :battlecry   (fn [state card]
-                   (let [player-id (:owner-id card)]
-                     (draw-for-each-damaged state player-id)))}
+   {:class        :warrior
+    :description  "Draw a card for each damaged friendly character."
+    :mana-cost    2
+    :name         "Battle Rage"
+    :rarity       :common
+    :set          :classic
+    :type         :spell
+    :effect-spell (fn [state other-args]
+                    (let [card (:spell-played other-args)
+                          player-id (:owner-id card)]
+                      (draw-for-each-damaged state player-id)))}
 
    "Blessed Champion"
-   {:class       :paladin
-    :description "Double a minion's Attack."
-    :mana-cost   5
-    :name        "Blessed Champion"
-    :rarity      :rare
-    :set         :classic
-    :type        :spell
-    :battlecry   (fn [state card target-minion-id]
-                   (let [attack (get-attack state target-minion-id)]
-                     (-> state
-                         (update-attack target-minion-id attack))))}
+   {:class        :paladin
+    :description  "Double a minion's Attack."
+    :mana-cost    5
+    :name         "Blessed Champion"
+    :rarity       :rare
+    :set          :classic
+    :type         :spell
+    :effect-spell (fn [state other-args]
+                    (let [target-minion-id (:target-minion-id other-args)
+                          attack (get-attack state target-minion-id)]
+                      (-> state
+                          (update-attack target-minion-id attack))))}
 
    "Defender"
    {:name      "Defender"
@@ -129,7 +131,7 @@
     :battlecry   (fn [state card]
                    (let [owner-id (get-in card [:owner-id])]
                      (-> state
-                         (update-armor owner-id 3))))}
+                         (update-armor owner-id 3))))}      ;TODO
 
    "King Mukla"
    {:attack      5
@@ -145,32 +147,34 @@
                      (draw-specific-card state player-id "Bananas" 2)))}
 
    "Knife Juggler"
-   {:attack      3
-    :description "After you summon a minion, deal 1 damage to a random enemy."
-    :health      2
-    :mana-cost   2
-    :name        "Knife Juggler"
-    :rarity      :rare
-    :set         :classic
-    :type        :minion
-    :effect-summon-minion   (fn [state other-args]
-                              (let [minion-play-effect-id (:id(:minion-play-effect other-args))
-                                    enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                                (damage-random state 1 enemy-id)))
+   {:attack               3
+    :description          "After you summon a minion, deal 1 damage to a random enemy."
+    :health               2
+    :mana-cost            2
+    :name                 "Knife Juggler"
+    :rarity               :rare
+    :set                  :classic
+    :type                 :minion
+    :effect-summon-minion (fn [state other-args]
+                            (let [minion-play-effect-id (:id (:minion-play-effect other-args))
+                                  enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
+                              (damage-random state 1 enemy-id)))
     }
 
    "Lorewalker Cho"
-   {:attack      0
-    :description "Whenever a player casts a spell, put a copy into the other player's hand."
-    :health      4
-    :mana-cost   2
-    :name        "Lorewalker Cho"
-    :rarity      :legendary
-    :set         :classic
-    :type        :minion
-    :copy-spell-card-to-opposite-player (fn [state card]
-                                          (let [opposing-id (get-opposing-player-id state)]
-                                            (add-card-to-hand state opposing-id (create-card card))))
+   {:attack            0
+    :description       "Whenever a player casts a spell, put a copy into the other player's hand."
+    :health            4
+    :mana-cost         2
+    :name              "Lorewalker Cho"
+    :rarity            :legendary
+    :set               :classic
+    :type              :minion
+    :effect-cast-spell (fn [state rest]
+                         (let [card-spell-casted (:card-spell-casted rest)
+                               owner-id (:owner-id card-spell-casted)
+                               opposing-id (get-opposing-player-id state owner-id)]
+                           (add-card-to-hand state opposing-id (create-card (:name card-spell-casted))))) ;could be improved, copying the stats of the card.
     }
 
    "Novice Engineer"
@@ -206,22 +210,24 @@
     :type               :minion
     :effect-cant-attack true
     :effect-end-turn    (fn [state other-args]
-                          (let [minion-play-effect-id (:id(:minion-play-effect other-args))
+                          (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                 enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
                             (damage-random state 8 enemy-id)))}
 
    "Shield Slam"
-   {:class       :warrior
-    :description "Deal 1 damage to a minion for each Armor you have."
-    :mana-cost   1
-    :name        "Shield Slam"
-    :rarity      :epic
-    :set         :classic
-    :type        :spell
-    :battlecry   (fn [state card target-minion-id]
-                   (let [owner-id (get-in card [:owner-id])
-                         number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
-                     (deal-damages state target-minion-id number-armor)))}
+   {:class        :warrior
+    :description  "Deal 1 damage to a minion for each Armor you have."
+    :mana-cost    1
+    :name         "Shield Slam"
+    :rarity       :epic
+    :set          :classic
+    :type         :spell
+    :effect-spell (fn [state other-args]
+                    (let [card (:spell-played other-args)
+                          target-minion-id (:target-minion-id other-args)
+                          owner-id (get-in card [:owner-id])
+                          number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
+                      (deal-damages state target-minion-id number-armor)))}
 
    "Snake"
    {:name      "Snake"
@@ -234,15 +240,15 @@
     :class     :hunter}
 
    "Whirlwind"
-   {:class       :warrior
-    :description "Deal one damage to ALL minions."
-    :mana-cost   1
-    :name        "Whirlwind"
-    :set         :basic
-    :type        :spell
-    :battlecry   (fn [state card]
-                   (let [minions-list (get-minions state)
-                         deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
-                     (reduce deal-one-damage state minions-list)))
+   {:class        :warrior
+    :description  "Deal one damage to ALL minions."
+    :mana-cost    1
+    :name         "Whirlwind"
+    :set          :basic
+    :type         :spell
+    :effect-spell (fn [state other-args]
+                    (let [minions-list (get-minions state)
+                          deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                      (reduce deal-one-damage state minions-list)))
     }})
 (add-definitions! card-definitions)
