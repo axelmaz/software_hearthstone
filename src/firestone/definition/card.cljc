@@ -1,12 +1,16 @@
 (ns firestone.definition.card
   (:require [ysera.error :refer [error]]
             [firestone.definitions :refer [add-definitions!]]
-            [firestone.core :refer [deal-damages
-                                    damage-random
+            [firestone.core :refer [damage-random
+                                    deal-damages
+                                    give-minion-plus-attack-and-health
                                     update-armor
                                     update-attack]]
-            [firestone.construct :refer [draw-card
+            [firestone.construct :refer [add-card-to-hand
+                                         create-card
+                                         draw-card
                                          draw-for-each-damaged
+                                         draw-specific-card
                                          friendly?
                                          get-armor
                                          get-attack
@@ -17,12 +21,7 @@
                                          get-owner-id
                                          get-player-id-in-turn
                                          set-divine-shield
-                                         give-minion-plus-one
-                                         draw-specific-card
-                                         draw-specific-card
-                                         update-minion
-                                         add-card-to-hand
-                                         create-card]]))
+                                         update-minion]]))
 
 (def card-definitions
   {
@@ -79,11 +78,9 @@
     :name        "Bananas"
     :set         :classic
     :type        :spell
-    :battlecry   (fn [state card pos]
-                   (let [target-minion-name (:name card)
-                         target-minion-id (:id card)
-                         player-id (get-player-id-in-turn state)]
-                     (give-minion-plus-one state player-id target-minion-name target-minion-id pos)))}
+    :battlecry   (fn [state target-minion]
+                   (let [target-minion-id (:id target-minion)]
+                     (give-minion-plus-attack-and-health state target-minion-id 1)))}
 
    "Battle Rage"
    {:class       :warrior
@@ -159,7 +156,7 @@
     :effect-summon-minion   (fn [state other-args]
                               (let [minion-play-effect-id (:id(:minion-play-effect other-args))
                                     enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                                (damage-random state 1 enemy-id))) ; TODO : test it
+                                (damage-random state 1 enemy-id)))
     }
 
    "Lorewalker Cho"

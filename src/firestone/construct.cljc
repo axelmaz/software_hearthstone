@@ -852,6 +852,22 @@
           (remove-card-from-deck player-id (:id card))
           (add-card-to-hand player-id card)))))
 
+(defn draw-cards
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-cards "p1" 1)
+                    (get-card-from-hand "p1" "n1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game)
+                    (draw-cards "p1" 5)
+                    (get-in [:players "p1" :hero :damage-taken]))
+                5))}
+  [state player-id number-of-cards]
+  (if (<= number-of-cards 0)
+    state
+    (draw-cards (draw-card state player-id) player-id (- number-of-cards 1))))
+
 (defn set-divine-shield
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
@@ -890,31 +906,6 @@
   [state minion-id]
   (boolean (:divine-shield (get-minion state minion-id))))
 
-(defn give-minion-plus-one
-  "Spell to give a targeted minion +1/+1"
-  {:test (fn []
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:attack (get-minion $ "n1")))
-                5)
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:health (get-minion $ "n1")))
-                5)
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 2)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:damage-taken (get-minion $ "n1")))
-                1))}
-  [state player-id minion-name minion-id pos]
-  (if (= (get-in state [:players player-id :minions pos :damage-taken]) 0)
-    (-> state
-        (update-minion minion-id :health inc)
-        (update-minion minion-id :attack inc))
-    (as-> state $
-          (update-minion $ minion-id :health inc)
-          (update-minion $ minion-id :damage-taken dec)
-          (update-minion $ minion-id :attack inc))
-    ))
 
 (defn draw-for-each-damaged
   "Make the player draw for each minion damaged he has"
@@ -949,13 +940,13 @@
                 2))}
   [state player-id]
   (let [minions-player-list (get-minions state player-id)
-        function-draw-for-each-damaged (fn [state minion]
+        function-how-many-damaged (fn [number minion]
                                          (let [damaged? (> (:damage-taken minion) 0)]
                                            (if-not damaged?
-                                             state
-                                             (-> state
-                                                 (draw-card player-id)))))]
-    (reduce function-draw-for-each-damaged state minions-player-list)))
+                                             number
+                                             (inc number))))
+        number-damaged (reduce function-how-many-damaged 0 minions-player-list)]
+    (draw-cards state player-id number-damaged)))
 
 (defn draw-specific-card
   "Make the player get a specific card 'x' many times"

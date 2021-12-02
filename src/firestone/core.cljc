@@ -414,3 +414,19 @@
   (-> state
       (add-minion-to-board player-id card position)
       (listener-effect :effect-summon-minion)))
+
+(defn give-minion-plus-attack-and-health
+  "Give a targeted minion +value/+value"
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                      (give-minion-plus-attack-and-health "n1" 1)
+                      (get-attack "n1"))
+                5)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
+                      (give-minion-plus-attack-and-health "n1" 1)
+                      (get-total-health "n1"))
+                5))}
+  [state minion-id value]
+  (-> state
+      (update-attack minion-id value)
+      (update-total-health minion-id value)))
