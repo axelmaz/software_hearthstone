@@ -51,13 +51,23 @@
                  :damage-taken                0
                  :entity-type                 :minion
                  :name                        "Nightblade"
-                 :id                          "n"}))}
+                 :id                          "n"
+                 :divine-shield nil})
+           (is= (create-minion "Argent Squire"
+                               :id "n"
+                               :attacks-performed-this-turn 1)
+                {:attacks-performed-this-turn 1
+                 :damage-taken                0
+                 :entity-type                 :minion
+                 :name                        "Argent Squire"
+                 :id                          "n"
+                 :divine-shield true}))}
   [name & kvs]
   (let [definition (get-definition name)                    ; Will be used later
-        minion {:damage-taken                0
-                :entity-type                 :minion
-                :name                        name
-                :attacks-performed-this-turn 0}]
+        minion (assoc {:damage-taken                0
+                       :entity-type                 :minion
+                       :name                        name
+                       :attacks-performed-this-turn 0} :divine-shield (:divine-shield definition))]
     (if (empty? kvs)
       minion
       (apply assoc minion kvs))))
@@ -396,7 +406,8 @@
                                                                    :id          "c4"
                                                                    :name        "Snake"
                                                                    :owner-id    "p1"}]
-                                                       :minions  [{:damage-taken                0
+                                                       :minions  [{:divine-shield nil
+                                                                   :damage-taken                0
                                                                    :attacks-performed-this-turn 0
                                                                    :added-to-board-time-id      2
                                                                    :entity-type                 :minion

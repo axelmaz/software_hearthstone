@@ -45,18 +45,15 @@
                        (set-divine-shield state target-minion-id))))}
 
    "Argent Squire"
-   {:attack      1
-    :description "Divine Shield"
-    :health      1
-    :mana-cost   1
-    :name        "Argent Squire"
-    :rarity      :common
-    :set         :classic
-    :type        :minion
-    :battlecry   (fn [state other-args]
-                   (let [card (:played-card other-args)
-                         target-minion-id (:id card)]
-                     (set-divine-shield state target-minion-id)))} ;TODO not battlecry
+   {:attack        1
+    :description   "Divine Shield"
+    :health        1
+    :mana-cost     1
+    :name          "Argent Squire"
+    :rarity        :common
+    :set           :classic
+    :type          :minion
+    :divine-shield true}
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
