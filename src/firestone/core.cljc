@@ -420,7 +420,7 @@
   [state heroe-id value-damages]
   (deal-damages-to-heroe-by-player-id state (get-player-id-from-heroe-id state heroe-id) value-damages))
 
-(defn deal-damages
+(defn deal-damages                                          ; TODO : delete of the game when health<=0
   "Deal the value of damage to the corresponding character"
   {:test (fn []
            (is= (-> (create-game)

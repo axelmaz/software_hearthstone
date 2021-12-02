@@ -36,7 +36,7 @@
                                     use-battlecry
                                     valid-attack?]]))
 
-(defn end-turn
+(defn end-turn                                              ;TODO : reset attacked-this-turn
   {:test (fn []
            (is= (-> (create-game)
                     (end-turn "p1")
@@ -233,7 +233,7 @@
         (update-minion minion-attack-id :attacks-performed-this-turn 1))))
 
 
-(defn use-hero-power
+(defn use-hero-power                                        ; TODO : redo
   "Allow the player to use the hero power
   TODO : - valid-power? to check the mana and if it has already be used this turn
   - handle the target or not target powers
