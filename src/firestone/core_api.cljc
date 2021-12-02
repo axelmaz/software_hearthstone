@@ -12,9 +12,14 @@
                                          decrease-mana-with-card
                                          draw-card
                                          enough-mana?
+                                         get-armor
+                                         get-attack
                                          get-card-from-hand
+                                         get-character
                                          get-deck
                                          get-hand
+                                         get-health
+                                         get-hero-id-from-player-id
                                          get-mana
                                          get-minion
                                          get-minions
@@ -25,16 +30,11 @@
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
-            [firestone.core :refer [deal-damages
-                                    end-turn-effect
-                                    get-armor
-                                    get-attack
-                                    get-character
-                                    get-health
-                                    get-hero-id-from-player-id
-                                    valid-attack?
-                                    summon-minions-on-board-spell
-                                    copy-spell-of-opposite-player]]))
+            [firestone.core :refer [copy-spell-of-opposite-player
+                                    deal-damages
+                                    listener-effect
+                                    summon-minion
+                                    valid-attack?]]))
 
 (defn end-turn
   {:test (fn []
@@ -66,8 +66,9 @@
   (let [player-change-fn {"p1" "p2"
                           "p2" "p1"}]
     (-> state
-        (end-turn-effect)
+        (listener-effect :effect-end-turn)
         (update :player-id-in-turn player-change-fn)
+        (listener-effect :effect-start-turn)
         (draw-card (get-opposing-player-id state))
         (assoc-in [:players (get-opposing-player-id state) :mana] 10))))
 
@@ -91,14 +92,16 @@
                     (get-health "h2"))
                 27)
            ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
-           (is (-> (create-game [{:minions [(create-minion "Defender" :id "d")
+           (is (-> (create-game [{:hand [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+                                  :minions [(create-minion "Defender" :id "d")
                                             (create-minion "Defender" :id "d2")]}])
-                   (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
+                   (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
                    (is-divine-shield? "d")))
            ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
-           (is-not (-> (create-game [{:minions [(create-minion "Defender" :id "d")
+           (is-not (-> (create-game [{:hand [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+                                      :minions [(create-minion "Defender" :id "d")
                                                 (create-minion "Defender" :id "d2")]}])
-                       (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d")
+                       (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
                        (is-divine-shield? "d2")))
            ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
            (error? (-> (create-game [{:minions [(create-minion "Defender" :id "d")]}])
@@ -198,8 +201,7 @@
     (-> state
         (decrease-mana-with-card player-id card)
         (remove-card-from-hand player-id card-id)
-        (summon-minions-on-board-spell)
-        (add-minion-to-board player-id card position)
+        (summon-minion player-id card position)
         (copy-spell-of-opposite-player (card :name))
         (use-battlecry card)
         )))
@@ -290,21 +292,26 @@
 (defn attack-hero
   {:test
    (fn []
+     ;When we attack the hero, it should loose health
      (is= (-> (create-game)
-              (add-card-to-deck "p1" "Nightblade")
-              (add-card-to-deck "p2" "Nightblade")
               (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-              (end-turn "p1")
-              (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
-              (end-turn "p2")
               (attack-hero "p1" "ne")
               (get-health "h2"))
-          29))}
+          29)
+     ; Should not be possible to attack twice
+     (error? (-> (create-game)
+              (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+              (attack-hero "p1" "ne")
+              (attack-hero "p1" "ne")
+              ))
+     )}
   [state player-id minion-attack-id]
   (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
       (error "This attack is not possible"))
-    (deal-damages state attacked-player-id value-attack-attack)))
+    (-> state
+        (deal-damages attacked-player-id value-attack-attack)
+        (update-minion minion-attack-id :attacks-performed-this-turn 1))))
 
 
 (defn use-hero-power
@@ -320,10 +327,11 @@
            (error? (-> (create-game [{:mana 1}])
                        (use-hero-power "p1")))
            ; Shouldn't be able to use the power twice a tour TODO
-           (error? (-> (create-game [{:hero "Garrosh Hellscream"
-                                      :mana 9}])
-                       (use-hero-power "p1")
-                       (use-hero-power "p1")))
+           ;
+           ;(error? (-> (create-game [{:hero "Garrosh Hellscream"
+           ;                           :mana 9}])
+           ;            (use-hero-power "p1")
+           ;            (use-hero-power "p1")))
            ; The mana of the player should decrease by the mana cost of the card
            (is= (-> (create-game [{:hero "Garrosh Hellscream"
                                    :mana 9}])

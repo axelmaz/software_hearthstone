@@ -1,9 +1,9 @@
 (ns firestone.definition.hero-powers
   (:require
     [firestone.core :refer [deal-damages
-                            get-hero-id-from-player-id
                             update-armor]]
-    [firestone.construct :refer [get-player-id-in-turn]]))
+    [firestone.construct :refer [get-player-id-in-turn
+                                 get-hero-id-from-player-id]]))
 
 (def hero-powers
   {"Armor Up!"

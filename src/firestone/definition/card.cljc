@@ -1,19 +1,20 @@
 (ns firestone.definition.card
   (:require [ysera.error :refer [error]]
-            [ysera.random :refer [random-nth]]
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [deal-damages
-                                    damage-random-enemy
-                                    get-armor
-                                    get-attack
-                                    get-character
-                                    get-hero-id-from-player-id
+                                    damage-random
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [draw-card
                                          draw-for-each-damaged
+                                         friendly?
+                                         get-armor
+                                         get-attack
+                                         get-character
+                                         get-hero-id-from-player-id
                                          get-minions
                                          get-opposing-player-id
+                                         get-owner-id
                                          get-player-id-in-turn
                                          set-divine-shield
                                          give-minion-plus-one
@@ -36,18 +37,10 @@
     :set         :classic
     :rarity      :common
     :attack      2
-    :battlecry   (fn [state card target-minion-id]
-                   (let [owner-id (get-in card [:owner-id])
-                         valid-target-list (get-minions state owner-id)
-                         is-valid-target? (reduce (fn [a v]
-                                                    (if (= (:id v) target-minion-id)
-                                                      true
-                                                      a))
-                                                  false
-                                                  valid-target-list)]
-                     (if-not is-valid-target?
+    :battlecry   (fn [state played-card target-minion-id]
+                     (if-not (friendly? state (:id played-card) target-minion-id)
                        (error "invalid target")
-                       (set-divine-shield state target-minion-id))))}
+                       (set-divine-shield state target-minion-id)))}
 
    "Argent Squire"
    {:attack      1
@@ -72,9 +65,12 @@
     :set                                      :classic
     :rarity                                   :rare
     :attack                                   1
-    :effect-when-friendly-minion-takes-damage (fn [state card]
-                                                (let [player-id (:owner-id card)]
-                                                  (update-armor state player-id 1)))}
+    :effect-minion-takes-damage (fn [state other-args]
+                                                (let [minion-play-effect-id (:id(:minion-play-effect other-args))
+                                                      minion-takes-damage-id (:id(:minion-takes-damage other-args))]
+                                                  (if (friendly? state minion-play-effect-id minion-takes-damage-id) ;test if it is a friendly minion
+                                                    (update-armor state (get-owner-id state minion-takes-damage-id) 1)
+                                                    state)))}
 
 
    "Bananas"
@@ -160,9 +156,10 @@
     :rarity      :rare
     :set         :classic
     :type        :minion
-    :summon-friendly-minion-do-attack-spell (fn [state]
-                                              (let [enemy-id (get-opposing-player-id state)]
-                                                (damage-random-enemy state enemy-id)))
+    :effect-summon-minion   (fn [state other-args]
+                              (let [minion-play-effect-id (:id(:minion-play-effect other-args))
+                                    enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
+                                (damage-random state 1 enemy-id))) ; TODO : test it
     }
 
    "Lorewalker Cho"
@@ -211,13 +208,10 @@
     :set                :hall-of-fame
     :type               :minion
     :effect-cant-attack true
-    :effect-end-turn    (fn [state card]
-                          (let [player-id ({"p1" "p2"
-                                            "p2" "p1"} (:owner-id card))
-                                minion-list (get-minions state player-id)
-                                minion-and-hero-list (conj minion-list (get-character state (get-hero-id-from-player-id state player-id)))
-                                random-character-id (:id ((random-nth 1 minion-and-hero-list) 1))]
-                            (deal-damages state random-character-id 8)))}
+    :effect-end-turn    (fn [state other-args]
+                          (let [minion-play-effect-id (:id(:minion-play-effect other-args))
+                                enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
+                            (damage-random state 8 enemy-id)))}
 
    "Shield Slam"
    {:class       :warrior
