@@ -29,6 +29,7 @@
                                          get-total-health
                                          is-divine-shield?
                                          remove-divine-shield
+                                         remove-minion
                                          set-divine-shield
                                          update-minion]]))
 
@@ -295,6 +296,28 @@
       (restore-health-hero-by-player-id state id value)
       (restore-health-minion state id value)))
 
+(defn kill-if-dead
+  "Deal the value of damage to the corresponding character"
+  {:test (fn []
+           ; Should remove a minion that has no life
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}])
+                    (kill-if-dead "n1")
+                    (get-minions "p1")
+                    (count))
+                0)
+           ; Should remove a minion that has no life
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (kill-if-dead "n1")
+                    (get-minions "p1")
+                    (count))
+                1)
+           )}
+  [state id]
+  (let [minion-health (get-health state id)]
+    (if (<= minion-health 0)
+      (remove-minion state id)
+      state)))
+
 
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
@@ -326,6 +349,12 @@
                     (deal-damages-to-minion "n" 1)
                     (get-armor "h1"))
                 1)
+           ; Is a minion without life deleted from the board ?
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (deal-damages-to-minion "n1" 4)
+                    (get-minions "p1")
+                    (count))
+                0)
            )}
   [state minion-id value-damages]
   (let [is-minion-id? (reduce (fn [a v]
@@ -340,7 +369,8 @@
         (remove-divine-shield state minion-id)
         (-> state
             (listener-effect :effect-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
-            (update-minion minion-id :damage-taken value-damages))))))
+            (update-minion minion-id :damage-taken value-damages)
+            (kill-if-dead minion-id))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"
@@ -420,7 +450,7 @@
   [state heroe-id value-damages]
   (deal-damages-to-heroe-by-player-id state (get-player-id-from-heroe-id state heroe-id) value-damages))
 
-(defn deal-damages                                          ; TODO : delete of the game when health<=0
+(defn deal-damages
   "Deal the value of damage to the corresponding character"
   {:test (fn []
            (is= (-> (create-game)
@@ -435,6 +465,11 @@
                     (deal-damages "n1" 1)
                     (get-health "n1"))
                 3)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (deal-damages "n1" 4)
+                    (get-minions "p1")
+                    (count))
+                0)
            )}
   [state id value-damages]
   (or (deal-damages-to-minion state id value-damages)
