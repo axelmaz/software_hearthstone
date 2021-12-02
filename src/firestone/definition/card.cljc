@@ -4,6 +4,7 @@
             [firestone.core :refer [damage-random
                                     deal-damages
                                     give-minion-plus-attack-and-health
+                                    restore-health
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
@@ -36,10 +37,12 @@
     :set         :classic
     :rarity      :common
     :attack      2
-    :battlecry   (fn [state played-card target-minion-id]
-                   (if-not (friendly? state (:id played-card) target-minion-id)
-                     (error "invalid target")
-                     (set-divine-shield state target-minion-id)))}
+    :battlecry   (fn [state other-args]
+                   (let [played-card (:played-card other-args)
+                         target-minion-id (:target-id other-args)]
+                     (if-not (friendly? state (:id played-card) target-minion-id)
+                       (error "invalid target")
+                       (set-divine-shield state target-minion-id))))}
 
    "Argent Squire"
    {:attack      1
@@ -50,9 +53,10 @@
     :rarity      :common
     :set         :classic
     :type        :minion
-    :battlecry   (fn [state card]
-                   (let [target-minion-id (:id card)]
-                     (set-divine-shield state target-minion-id)))}
+    :battlecry   (fn [state other-args]
+                   (let [card (:played-card other-args)
+                         target-minion-id (:id card)]
+                     (set-divine-shield state target-minion-id)))} ;TODO not battlecry
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
@@ -79,7 +83,7 @@
     :set          :classic
     :type         :spell
     :effect-spell (fn [state other-args]
-                    (let [target-minion-id (:target-minion-id other-args)]
+                    (let [target-minion-id (:target-id other-args)]
                       (give-minion-plus-attack-and-health state target-minion-id 1)))}
 
    "Battle Rage"
@@ -104,7 +108,7 @@
     :set          :classic
     :type         :spell
     :effect-spell (fn [state other-args]
-                    (let [target-minion-id (:target-minion-id other-args)
+                    (let [target-minion-id (:target-id other-args)
                           attack (get-attack state target-minion-id)]
                       (-> state
                           (update-attack target-minion-id attack))))}
@@ -128,10 +132,9 @@
     :rarity      :common
     :set         :classic
     :type        :minion
-    :battlecry   (fn [state card]
-                   (let [owner-id (get-in card [:owner-id])]
-                     (-> state
-                         (update-armor owner-id 3))))}      ;TODO
+    :battlecry   (fn [state other-args]
+                   (let [target-id (:target-id other-args)]
+                     (restore-health state target-id 3)))}
 
    "King Mukla"
    {:attack      5
@@ -142,9 +145,9 @@
     :rarity      :legendary
     :set         :classic
     :type        :minion
-    :battlecry   (fn [state]
+    :battlecry   (fn [state other-args]
                    (let [player-id (get-opposing-player-id state)]
-                     (draw-specific-card state player-id "Bananas" 2)))}
+                     (draw-specific-card state player-id "Bananas" 2)))} ; TODO replace name : not draw but "take"
 
    "Knife Juggler"
    {:attack               3
@@ -185,7 +188,7 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Draw a card."
-    :battlecry   (fn [state card]
+    :battlecry   (fn [state other-args]
                    (draw-card state (get-player-id-in-turn state)))}
 
    "Nightblade"
@@ -196,7 +199,7 @@
     :type        :minion
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
-    :battlecry   (fn [state card]
+    :battlecry   (fn [state other-args]
                    (deal-damages state (get-opposing-player-id state) 3))}
 
    "Ragnaros the Firelord"
@@ -224,7 +227,7 @@
     :type         :spell
     :effect-spell (fn [state other-args]
                     (let [card (:spell-played other-args)
-                          target-minion-id (:target-minion-id other-args)
+                          target-minion-id (:target-id other-args)
                           owner-id (get-in card [:owner-id])
                           number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
                       (deal-damages state target-minion-id number-armor)))}

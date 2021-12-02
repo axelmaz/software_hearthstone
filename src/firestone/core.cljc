@@ -13,6 +13,7 @@
                                          get-armor
                                          get-attack
                                          get-character
+                                         get-deck
                                          get-hand
                                          get-health
                                          get-hero-id-from-player-id
@@ -210,6 +211,90 @@
         new-health (update-function old-health)]
     (-> state
         (update-minion minion-id :health new-health))))
+
+(defn restore-health-minion
+  "decrease :damage-taken by the value. :damage-taken could not be negative."
+  {:test (fn []
+           ; Should restore health of a damaged minion
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 3)]}])
+                    (restore-health-minion "n" +2)
+                    (get-health "n"))
+                3)
+           ;Should not restore more than total health
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n" :damage-taken 1)]}])
+                    (restore-health-minion "n" +10)
+                    (get-health "n"))
+                4))}
+  [state minion-id value]
+  (let [damages-taken (:damage-taken (get-minion state minion-id))
+        value-restore-max (min value damages-taken)
+        new-damages-taken (- damages-taken value-restore-max)]
+    (update-minion state minion-id :damage-taken new-damages-taken)))
+
+(defn restore-health-hero-by-player-id
+  "decrease :damage-taken by the value. :damage-taken could not be negative."
+  {:test (fn []
+           ;should work for hero as well
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 5)}])
+                    (restore-health-hero-by-player-id "p1" +3)
+                    (get-health "h1"))
+                28)
+           ;should return nil if the id is false
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 5)}])
+                    (restore-health-hero-by-player-id "no-id" +3))
+                nil)
+           )}
+  [state player-id value]
+  (let [is-player-id? (reduce (fn [a v]
+                                (if (= v player-id)
+                                  true
+                                  a))
+                              false
+                              (map :id (get-players state)))]
+    (if-not is-player-id?                                   ; test if player-id is the id of a player
+      nil
+      (let [damages-taken (:damage-taken (get-character state (get-hero-id-from-player-id state player-id)))
+            value-restore-max (min value damages-taken)]
+        (update-in state [:players player-id :hero :damage-taken] - value-restore-max))
+      )))
+
+(defn restore-health-hero-by-hero-id
+  "decrease :damage-taken by the value. :damage-taken could not be negative."
+  {:test (fn []
+           ;should work for hero as well
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 5)}])
+                    (restore-health-hero-by-hero-id "h1" +3)
+                    (get-health "h1"))
+                28)
+           ;should return nil if the id is false
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 5)}])
+                    (restore-health-hero-by-hero-id "fake-id" +3))
+                nil)
+           )}
+  [state hero-id value]
+  (restore-health-hero-by-player-id state (get-player-id-from-heroe-id state hero-id) value))
+
+(defn restore-health
+  "Deal the value of damage to the corresponding character"
+  {:test (fn []
+           (is= (-> (create-game[{:hero (create-hero "Jaina Proudmoore" :damage-taken 12)}])
+                    (restore-health "h1" 10)
+                    (get-health "h1"))
+                28)
+           (is= (-> (create-game[{:hero (create-hero "Jaina Proudmoore" :damage-taken 8)}])
+                    (restore-health "p1" 10)
+                    (get-health "h1"))
+                30)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 2)]}])
+                    (restore-health "n1" 1)
+                    (get-health "n1"))
+                3)
+           )}
+  [state id value]
+  (or (restore-health-hero-by-hero-id state id value)
+      (restore-health-hero-by-player-id state id value)
+      (restore-health-minion state id value)))
+
 
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
@@ -427,9 +512,9 @@
                 3)
            ; effect of Shield Slam should be done
            (is= (as-> (create-game [{:hero (create-hero "Jaina Proudmoore" :armor 2)}
-                                  {:minions [(create-minion "Nightblade" :id "n")]}]) $
-                    (cast-spell $ (create-card "Shield Slam" :owner-id "p1") "n")
-                    (get-health $ "n"))
+                                    {:minions [(create-minion "Nightblade" :id "n")]}]) $
+                      (cast-spell $ (create-card "Shield Slam" :owner-id "p1") "n")
+                      (get-health $ "n"))
                 2)
            ; Test "Blessed champion effect : should double the attack
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n")]
@@ -444,18 +529,18 @@
                 5)
            )}
   ([state card]
-  (let [spell-function ((get-definition card) :effect-spell)]
-    (if spell-function
-      (-> state
-          (listener-effect :effect-cast-spell {:card-spell-casted card})
-          (spell-function {:spell-played card}))
-      (listener-effect state :effect-cast-spell {:card-spell-casted card}))))
+   (let [spell-function ((get-definition card) :effect-spell)]
+     (if spell-function
+       (-> state
+           (listener-effect :effect-cast-spell {:card-spell-casted card})
+           (spell-function {:spell-played card}))
+       (listener-effect state :effect-cast-spell {:card-spell-casted card}))))
   ([state card target-minion-id]
    (let [spell-function (:effect-spell (get-definition card))]
      (if spell-function
        (-> state
            (listener-effect :effect-cast-spell {:card-spell-casted card})
-           (spell-function {:target-minion-id target-minion-id :spell-played card}))
+           (spell-function {:target-id target-minion-id :spell-played card}))
        (listener-effect state :effect-cast-spell {:card-spell-casted card})))))
 
 (defn give-minion-plus-attack-and-health
@@ -473,3 +558,63 @@
   (-> state
       (update-attack minion-id value)
       (update-total-health minion-id value)))
+
+(defn use-battlecry
+  {:test (fn []
+           ; The battlecry of Novice Engineer is to draw a card so we test if we obtain a card in our hand
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
+                    (use-battlecry "Novice Engineer")
+                    (get-hand "p1")
+                    (first)
+                    (:name))
+                "Nightblade")
+           ; We also test if the card is removed from the deck
+           (empty? (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
+                       (use-battlecry "Novice Engineer")
+                       (get-deck "p1")
+                       ))
+           ; The battlecry of Nightblade is to Deal 3 damage to the enemy hero so we test if the enememy heroe's life decrease.
+           (is= (-> (create-game)
+                    (use-battlecry "Nightblade")
+                    (get-health "h2"))
+                27)
+           ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
+           (is (-> (create-game [{:hand    [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+                                  :minions [(create-minion "Defender" :id "d")
+                                            (create-minion "Defender" :id "d2")]}])
+                   (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
+                   (is-divine-shield? "d")))
+           ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
+           (is-not (-> (create-game [{:hand    [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+                                      :minions [(create-minion "Defender" :id "d")
+                                                (create-minion "Defender" :id "d2")]}])
+                       (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
+                       (is-divine-shield? "d2")))
+           ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
+           (error? (-> (create-game [{:minions [(create-minion "Defender" :id "d")]}])
+                       (add-minion-to-board "p2" (create-minion "Defender" :id "d2") 0)
+                       (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d2")
+                       (is-divine-shield? "d2")))
+           ; Divine shield minions are seen as battlecry, and get a shield at this moment
+           (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
+                   (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
+                   (is-divine-shield? "a")))
+           ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
+           (is= (-> (create-game)
+                    (use-battlecry "Defender"))
+                (create-game))
+           ; Test "Earthen Ring Farseer"
+           (is= (-> (create-game [{:minions [(create-minion "Defender" :id "d" :health 10 :damage-taken 5)]}])
+                    (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1") "d")
+                    (get-health "d"))
+                8)
+           )}
+  ([state card]
+   (let [battlecry-function ((get-definition card) :battlecry)]
+     (if battlecry-function
+       (battlecry-function state {:played-card card}) state)))
+  ([state card target-id]
+   (let [battlecry-function ((get-definition card) :battlecry)]
+     (if battlecry-function
+       (battlecry-function state {:played-card card :target-id target-id}) state))
+   ))

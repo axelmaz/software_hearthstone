@@ -16,7 +16,6 @@
                                          get-attack
                                          get-card-from-hand
                                          get-character
-                                         get-deck
                                          get-hand
                                          get-health
                                          get-hero-id-from-player-id
@@ -34,6 +33,7 @@
                                     deal-damages
                                     listener-effect
                                     summon-minion
+                                    use-battlecry
                                     valid-attack?]]))
 
 (defn end-turn
@@ -71,64 +71,6 @@
         (listener-effect :effect-start-turn)
         (draw-card (get-opposing-player-id state))
         (assoc-in [:players (get-opposing-player-id state) :mana] 10))))
-
-(defn use-battlecry
-  {:test (fn []
-           ; The battlecry of Novice Engineer is to draw a card so we test if we obtain a card in our hand
-           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
-                    (use-battlecry "Novice Engineer")
-                    (get-hand "p1")
-                    (first)
-                    (:name))
-                "Nightblade")
-           ; We also test if the card is removed from the deck
-           (empty? (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]}])
-                       (use-battlecry "Novice Engineer")
-                       (get-deck "p1")
-                       ))
-           ; The battlecry of Nightblade is to Deal 3 damage to the enemy hero so we test if the enememy heroe's life decrease.
-           (is= (-> (create-game)
-                    (use-battlecry "Nightblade")
-                    (get-health "h2"))
-                27)
-           ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
-           (is (-> (create-game [{:hand [(create-card "Argent Protector" :owner-id "p1" :id "a")]
-                                  :minions [(create-minion "Defender" :id "d")
-                                            (create-minion "Defender" :id "d2")]}])
-                   (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
-                   (is-divine-shield? "d")))
-           ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
-           (is-not (-> (create-game [{:hand [(create-card "Argent Protector" :owner-id "p1" :id "a")]
-                                      :minions [(create-minion "Defender" :id "d")
-                                                (create-minion "Defender" :id "d2")]}])
-                       (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
-                       (is-divine-shield? "d2")))
-           ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
-           (error? (-> (create-game [{:minions [(create-minion "Defender" :id "d")]}])
-                       (add-minion-to-board "p2" (create-minion "Defender" :id "d2") 0)
-                       (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d2")
-                       (is-divine-shield? "d2")))
-           ; Divine shield minions are seen as battlecry, and get a shield at this moment
-           (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
-                   (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
-                   (is-divine-shield? "a")))
-           ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
-           (is= (-> (create-game)
-                    (use-battlecry "Defender"))
-                (create-game))
-           ; Test "Earthen Ring Farseer"
-           (is= (-> (create-game)
-                    (use-battlecry (create-card "Earthen Ring Farseer" :owner-id "p1"))
-                    (get-armor "h1"))
-                3)
-           )}
-  ([state card]
-   (let [battlecry-function ((get-definition card) :battlecry)]
-     (if battlecry-function (battlecry-function state card) state)))
-  ([state card target-id]
-   (let [battlecry-function ((get-definition card) :battlecry)]
-     (if battlecry-function (battlecry-function state card target-id) state))
-   ))
 
 (defn play-minion-card
   {:test (fn []
