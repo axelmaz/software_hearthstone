@@ -240,7 +240,7 @@
         (update-minion minion-attack-id :attacks-performed-this-turn 1))))
 
 
-(defn use-hero-power                                        ; TODO : redo
+(defn use-hero-power
   "Allow the player to use the hero power
   TODO : - valid-power? to check the mana and if it has already be used this turn
   - handle the target or not target powers
@@ -286,7 +286,7 @@
       (error "Not enough mana."))
     (-> state
         (decrease-mana player-id mana-cost)
-        (effect)
+        (effect {})
         )))
   ([state player-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)
@@ -299,5 +299,4 @@
        (error "Not enough mana."))
      (-> state
          (decrease-mana player-id mana-cost)
-         (effect target-id)
-         ))))
+         (effect {:target-id target-id})))))

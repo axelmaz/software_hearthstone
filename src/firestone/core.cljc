@@ -334,9 +334,19 @@
                     (deal-damages-to-minion "n1" 1)
                     (get-health "n1"))
                 4)
+           ; Same with Argent Squire that already have a divine shield
+           (is= (-> (create-game [{:minions [(create-minion "Argent Squire" :id "n1")]}])
+                    (deal-damages-to-minion "n1" 1)
+                    (get-health "n1"))
+                1)
            ;If the minion has a divine-shield it should loose it
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (set-divine-shield "n1")
+                    (deal-damages-to-minion "n1" 1)
+                    (is-divine-shield? "n1"))
+                false)
+           ; Same with Argent Squire that already have a divine shield
+           (is= (-> (create-game [{:minions [(create-minion "Argent Squire" :id "n1")]}])
                     (deal-damages-to-minion "n1" 1)
                     (is-divine-shield? "n1"))
                 false)
@@ -631,10 +641,6 @@
                        (add-minion-to-board "p2" (create-minion "Defender" :id "d2") 0)
                        (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d2")
                        (is-divine-shield? "d2")))
-           ; Divine shield minions are seen as battlecry, and get a shield at this moment
-           (is (-> (create-game [{:minions [(create-minion "Argent Squire" :id "a")]}])
-                   (use-battlecry (create-card "Argent Squire" :owner-id "p1" :id "a"))
-                   (is-divine-shield? "a")))
            ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
            (is= (-> (create-game)
                     (use-battlecry "Defender"))
