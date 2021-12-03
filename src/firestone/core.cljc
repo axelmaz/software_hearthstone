@@ -26,11 +26,12 @@
                                          get-player-id-in-turn
                                          get-players
                                          get-random-character
+                                         get-taunt-minions-id
                                          get-total-health
-                                         is-divine-shield?
-                                         remove-divine-shield
+                                         is-effect?
+                                         remove-effect
                                          remove-minion
-                                         set-divine-shield
+                                         set-effect
                                          update-minion
                                          update-minions]]))
 
@@ -78,11 +79,23 @@
            ; Ragnaros the Firelord shouldn't be able to attack
            (is-not (-> (create-game [{:minions [(create-minion "Ragnaros the Firelord" :id "n")]}
                                      {:minions [(create-minion "Defender" :id "d")]}])
-                       (valid-attack? "p1" "n" "d"))))}
+                       (valid-attack? "p1" "n" "d")))
+           ; We could not attack an enemy if another has taunt
+           (is-not (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}
+                                     {:minions [(create-minion "Defender" :id "d")
+                                                (create-minion "Defender" :id "d-taunt" :effect {:taunt true})]}])
+                       (valid-attack? "p1" "n" "d")))
+           ; We could attack an enemy if this enemy has taunt
+           (is (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}
+                                     {:minions [(create-minion "Defender" :id "d")
+                                                (create-minion "Defender" :id "d-taunt" :effect {:taunt true})]}])
+                       (valid-attack? "p1" "n" "d-taunt"))))}
   [state player-id attacker-id target-id]
   (let [attacker (get-minion state attacker-id)
-        target (get-character state target-id)]
+        target (get-character state target-id)
+        taunt-minions (get-taunt-minions-id state (get-opposing-player-id state player-id))]
     (and attacker
+         (or (empty? taunt-minions) (some #{target-id} taunt-minions))
          target
          (= (:player-id-in-turn state) player-id)
          (< (:attacks-performed-this-turn attacker) 1)
@@ -346,7 +359,7 @@
                 3)
            ;If the minion has a divine-shield it does not loose any life point
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
+                    (set-effect "n1" :divine-shield)
                     (deal-damages-to-minion "n1" 1)
                     (get-health "n1"))
                 4)
@@ -357,14 +370,14 @@
                 1)
            ;If the minion has a divine-shield it should loose it
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
+                    (set-effect "n1" :divine-shield)
                     (deal-damages-to-minion "n1" 1)
-                    (is-divine-shield? "n1"))
+                    (is-effect? "n1" :divine-shield))
                 false)
            ; Same with Argent Squire that already have a divine shield
            (is= (-> (create-game [{:minions [(create-minion "Argent Squire" :id "n1")]}])
                     (deal-damages-to-minion "n1" 1)
-                    (is-divine-shield? "n1"))
+                    (is-effect? "n1" :divine-shield))
                 false)
            ;If the id doesn't correspond we return nil (uselful for deal-damages function
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
@@ -392,8 +405,8 @@
                               (map :id (get-minions state)))]
     (if-not is-minion-id?                                   ; test if minion-id is the id of a minion
       nil
-      (if (is-divine-shield? state minion-id)
-        (remove-divine-shield state minion-id)
+      (if (is-effect? state minion-id :divine-shield)
+        (remove-effect state minion-id :divine-shield)
         (-> state
             (listener-effect :effect-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
             (update-minion minion-id :damage-taken value-damages)
@@ -645,18 +658,18 @@
                                   :minions [(create-minion "Defender" :id "d")
                                             (create-minion "Defender" :id "d2")]}])
                    (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
-                   (is-divine-shield? "d")))
+                   (is-effect? "d" :divine-shield)))
            ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
            (is-not (-> (create-game [{:hand    [(create-card "Argent Protector" :owner-id "p1" :id "a")]
                                       :minions [(create-minion "Defender" :id "d")
                                                 (create-minion "Defender" :id "d2")]}])
                        (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
-                       (is-divine-shield? "d2")))
+                       (is-effect? "d2" :divine-shield)))
            ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
            (error? (-> (create-game [{:minions [(create-minion "Defender" :id "d")]}])
                        (add-minion-to-board "p2" (create-minion "Defender" :id "d2") 0)
                        (use-battlecry (create-card "Argent Protector" :owner-id "p1") "d2")
-                       (is-divine-shield? "d2")))
+                       (is-effect? "d2" :divine-shield)))
            ; If the card doesn't have battlecry (as Defender for exemple), the state should not change
            (is= (-> (create-game)
                     (use-battlecry "Defender"))

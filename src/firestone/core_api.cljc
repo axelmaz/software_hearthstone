@@ -25,7 +25,6 @@
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
-                                         is-divine-shield?
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]

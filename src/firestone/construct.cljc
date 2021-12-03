@@ -53,15 +53,15 @@
                  :name                        "Nightblade"
                  :id                          "n"
                  :effect {}})
-           (is= (create-minion "Argent Squire"
+           (is= (create-minion "Sunwalker"
                                :id "n"
                                :attacks-performed-this-turn 1)
                 {:attacks-performed-this-turn 1
                  :damage-taken                0
                  :entity-type                 :minion
-                 :name                        "Argent Squire"
+                 :name                        "Sunwalker"
                  :id                          "n"
-                 :effect {:divine-shield true}}))}
+                 :effect {:taunt true :divine-shield true}}))}
   [name & kvs]
   (let [definition (get-definition name)                    ; Will be used later
         minion (assoc {:damage-taken                0
@@ -953,45 +953,46 @@
     state
     (draw-cards (draw-card state player-id) player-id (- number-of-cards 1))))
 
-(defn set-divine-shield
+(defn set-effect
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
+                    (set-effect "n1" :divine-shield)
                     (get-minion "n1")
                     (:effect)
                     (:divine-shield))
                 true))}
-  [state minion-id]
-  (update-minion state minion-id :effect (fn [effect] (assoc effect :divine-shield true))))
+  [state minion-id effect]
+  (update-minion state minion-id :effect (fn [eff] (assoc eff effect true))))
 
-(defn remove-divine-shield
+(defn remove-effect
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
-                    (remove-divine-shield "n1")
+                    (set-effect "n1" :divine-shield)
+                    (remove-effect "n1" :divine-shield)
                     (get-minion "n1")
                     (:effect)
                     (:divine-shield))
                 false))}
-  [state minion-id]
-  (update-minion state minion-id :effect (fn [effect] (assoc effect :divine-shield false))))
+  [state minion-id effect]
+  (update-minion state minion-id :effect (fn [eff] (assoc eff effect false))))
 
-(defn is-divine-shield?
+(defn is-effect?
+  "True if the minion has the corresponding effect"
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
-                    (is-divine-shield? "n1"))
+                    (set-effect "n1" :divine-shield)
+                    (is-effect? "n1" :divine-shield))
                 true)
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                    (is-divine-shield? "n1"))
+                    (is-effect? "n1" :divine-shield))
                 false)
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
-                    (set-divine-shield "n1")
-                    (remove-divine-shield "n1")
-                    (is-divine-shield? "n1"))
+                    (set-effect "n1" :divine-shield)
+                    (remove-effect "n1" :divine-shield)
+                    (is-effect? "n1" :divine-shield))
                 false))}
-  [state minion-id]
-  (boolean (:divine-shield (:effect (get-minion state minion-id)))))
+  [state minion-id effect]
+  (boolean (effect (:effect (get-minion state minion-id)))))
 
 
 (defn draw-for-each-damaged
@@ -1098,3 +1099,18 @@
   (let [owner1 (get-owner-id state id1)
         owner2 (get-owner-id state id2)]
     (= owner1 owner2)))
+
+
+(defn get-taunt-minions-id
+  "Return a sequence of id corresponding to the minions of the player that have taunt. "
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-minion "Sunwalker" :id "n1")
+                                                (create-minion "Sunwalker" :id "n2")]}])
+                       (get-taunt-minions-id "p1"))
+                ["n1" "n2"])
+           (is= (-> (create-game [{:minions [(create-minion "Sunwalker" :id "n1")
+                                             (create-minion "Sunwalker" :id "n2")]}])
+                    (get-taunt-minions-id "p1"))
+                ["n1" "n2"]))}
+  [state player-id]
+  (filter (fn [minion-id] (is-effect? state minion-id :taunt)) (map :id (get-minions state player-id))))

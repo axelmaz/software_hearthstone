@@ -23,7 +23,7 @@
                                          get-player-id-in-turn
                                          remove-all-minions
                                          remove-all-cards-from-hand
-                                         set-divine-shield
+                                         set-effect
                                          update-minion]]))
 
 (def card-definitions
@@ -44,7 +44,7 @@
                          target-minion-id (:target-id other-args)]
                      (if-not (friendly? state (:id played-card) target-minion-id)
                        (error "invalid target")
-                       (set-divine-shield state target-minion-id))))}
+                       (set-effect state target-minion-id :divine-shield))))}
 
    "Argent Squire"
    {:attack      1
