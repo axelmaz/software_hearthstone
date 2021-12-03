@@ -87,9 +87,9 @@
                        (valid-attack? "p1" "n" "d")))
            ; We could attack an enemy if this enemy has taunt
            (is (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}
-                                     {:minions [(create-minion "Defender" :id "d")
-                                                (create-minion "Defender" :id "d-taunt" :effect {:taunt true})]}])
-                       (valid-attack? "p1" "n" "d-taunt"))))}
+                                 {:minions [(create-minion "Defender" :id "d")
+                                            (create-minion "Defender" :id "d-taunt" :effect {:taunt true})]}])
+                   (valid-attack? "p1" "n" "d-taunt"))))}
   [state player-id attacker-id target-id]
   (let [attacker (get-minion state attacker-id)
         target (get-character state target-id)
@@ -327,7 +327,7 @@
       (restore-health-minion state id value)))
 
 (defn kill-if-dead
-  "Deal the value of damage to the corresponding character"
+  "If a minion has a negative life, should be remove of the board"
   {:test (fn []
            ; Should remove a minion that has no life
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}])
@@ -348,55 +348,90 @@
       (remove-minion state id)
       state)))
 
+(defn kill-if-damaged-by-poisonous
+  "If a minion has been damaged by a poisonous minion, should be removed of the state"
+  {:test (fn []
+           ; Should remove a minion has been damaged by a poisonous minion
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
+                                  {:minions [(create-minion "Maexxna" :id "m")]}])
+                    (kill-if-damaged-by-poisonous "n1" "m")
+                    (get-minions "p1")
+                    (count))
+                0)
+           ; Should return the state if attacker-id is nil
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
+                                  {:minions [(create-minion "Maexxna" :id "m")]}])
+                    (kill-if-damaged-by-poisonous "n1" nil))
+                (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
+                              {:minions [(create-minion "Maexxna" :id "m")]}]))
+           ; Should return the state if the attacker is not poisonous
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
+                                  {:minions [(create-minion "Defender" :id "m")]}])
+                    (kill-if-damaged-by-poisonous "n1" "m"))
+                (create-game [{:minions [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
+                              {:minions [(create-minion "Defender" :id "m")]}]))
+           )}
+  [state victim-id attacker-id]
+  (if (and (some? attacker-id) (is-effect? state attacker-id :poisonous))
+    (remove-minion state victim-id)
+    state))
+
 
 (defn deal-damages-to-minion
   "Deal the value of damage to the corresponding minion"
   {:test (fn []
            ;A minion with the given id should take damage so its life decreases
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (deal-damages-to-minion "n1" 1)
+                    (deal-damages-to-minion "n1" 1 {})
                     (get-health "n1"))
                 3)
            ;If the minion has a divine-shield it does not loose any life point
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (set-effect "n1" :divine-shield)
-                    (deal-damages-to-minion "n1" 1)
+                    (deal-damages-to-minion "n1" 1 {})
                     (get-health "n1"))
                 4)
            ; Same with Argent Squire that already have a divine shield
            (is= (-> (create-game [{:minions [(create-minion "Argent Squire" :id "n1")]}])
-                    (deal-damages-to-minion "n1" 1)
+                    (deal-damages-to-minion "n1" 1 {})
                     (get-health "n1"))
                 1)
            ;If the minion has a divine-shield it should loose it
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
                     (set-effect "n1" :divine-shield)
-                    (deal-damages-to-minion "n1" 1)
+                    (deal-damages-to-minion "n1" 1 {})
                     (is-effect? "n1" :divine-shield))
                 false)
            ; Same with Argent Squire that already have a divine shield
            (is= (-> (create-game [{:minions [(create-minion "Argent Squire" :id "n1")]}])
-                    (deal-damages-to-minion "n1" 1)
+                    (deal-damages-to-minion "n1" 1 {})
                     (is-effect? "n1" :divine-shield))
                 false)
            ;If the id doesn't correspond we return nil (uselful for deal-damages function
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (deal-damages-to-minion "doesn't exist" 1))
+                    (deal-damages-to-minion "doesn't exist" 1 {}))
                 nil)
            ;Is the effect of Armorsmith working ?
            (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
                                              (create-card "Nightblade" :id "n")]}])
-                    (deal-damages-to-minion "n" 1)
+                    (deal-damages-to-minion "n" 1 {})
                     (get-armor "h1"))
                 1)
            ; Is a minion without life deleted from the board ?
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (deal-damages-to-minion "n1" 4)
+                    (deal-damages-to-minion "n1" 4 {})
+                    (get-minions "p1")
+                    (count))
+                0)
+           ; Is a minion damaged by a poisonous other deleted from the board ?
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}
+                                  {:minions [(create-minion "Maexxna" :id "m")]}])
+                    (deal-damages-to-minion "n1" 1 {:minion-attacker-id "m"})
                     (get-minions "p1")
                     (count))
                 0)
            )}
-  [state minion-id value-damages]
+  [state minion-id value-damages other-args]
   (let [is-minion-id? (reduce (fn [a v]
                                 (if (= v minion-id)
                                   true
@@ -410,7 +445,8 @@
         (-> state
             (listener-effect :effect-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
             (update-minion minion-id :damage-taken value-damages)
-            (kill-if-dead minion-id))))))
+            (kill-if-dead minion-id)
+            (kill-if-damaged-by-poisonous minion-id (:minion-attacker-id other-args)))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"
@@ -494,25 +530,25 @@
   "Deal the value of damage to the corresponding character"
   {:test (fn []
            (is= (-> (create-game)
-                    (deal-damages "h1" 10)
+                    (deal-damages "h1" 10 {})
                     (get-health "h1"))
                 20)
            (is= (-> (create-game)
-                    (deal-damages "p1" 10)
+                    (deal-damages "p1" 10 {})
                     (get-health "h1"))
                 20)
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (deal-damages "n1" 1)
+                    (deal-damages "n1" 1 {})
                     (get-health "n1"))
                 3)
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
-                    (deal-damages "n1" 4)
+                    (deal-damages "n1" 4 {})
                     (get-minions "p1")
                     (count))
                 0)
            )}
-  [state id value-damages]
-  (or (deal-damages-to-minion state id value-damages)
+  [state id value-damages other-args]
+  (or (deal-damages-to-minion state id value-damages other-args)
       (deal-damages-to-heroe-by-heroe-id state id value-damages)
       (deal-damages-to-heroe-by-player-id state id value-damages)
       ))
@@ -536,10 +572,10 @@
                 29))}
   ([state value-damages player-targeted-id]
    (let [random-id (:id (get-random-character state player-targeted-id))]
-     (deal-damages state random-id value-damages)))
+     (deal-damages state random-id value-damages {})))
   ([state value-damages]
    (let [random-id (:id (get-random-character state))]
-     (deal-damages state random-id value-damages))))
+     (deal-damages state random-id value-damages {}))))
 
 (defn summon-minion
   "Summon the given minion card to the board at the given position (and play the effect if there is one"

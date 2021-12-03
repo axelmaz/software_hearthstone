@@ -200,7 +200,7 @@
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
     :battlecry   (fn [state other-args]
-                   (deal-damages state (get-opposing-player-id state) 3))}
+                   (deal-damages state (get-opposing-player-id state) 3 {}))}
 
    "Ragnaros the Firelord"
    {:attack             8
@@ -230,7 +230,7 @@
                           target-minion-id (:target-id other-args)
                           owner-id (get-in card [:owner-id])
                           number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
-                      (deal-damages state target-minion-id number-armor)))}
+                      (deal-damages state target-minion-id number-armor {})))}
 
    "Snake"
    {:name      "Snake"
@@ -251,7 +251,7 @@
     :type         :spell
     :effect-spell (fn [state other-args]
                     (let [minions-list (get-minions state)
-                          deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                          deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1 {}))]
                       (reduce deal-one-damage state minions-list)))
     }
 
@@ -304,7 +304,8 @@
     :name        "Maexxna"
     :rarity      :legendary
     :set         :curse-of-naxxramas
-    :type        :minion}
+    :type        :minion
+    :effect      {:poisonous true}}
 
    "Explosive Trap"
    {:class       :hunter

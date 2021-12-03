@@ -203,15 +203,22 @@
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                        (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
                        (attack-minion "p1" "ne" "nb")
-                       (attack-minion "p1" "ne" "nb"))))}
+                       (attack-minion "p1" "ne" "nb")))
+           ; If a minion is attacked by a poisonous it should be deleted from the board.
+           (is= (-> (create-game [{:minions [(create-minion "Maexxna" :id "m")]}
+                                  {:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (attack-minion "p1" "m" "n1")
+                    (get-minions "p2")
+                    (count))
+                0))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
   (let [value-attack-attack (get-attack state minion-attack-id)]
     (let [value-attack-defense (get-attack state minion-defense-id)]
       (-> state
-          (deal-damages minion-defense-id value-attack-attack)
-          (deal-damages minion-attack-id value-attack-defense)
+          (deal-damages minion-defense-id value-attack-attack {:minion-attacker-id minion-attack-id})
+          (deal-damages minion-attack-id value-attack-defense {:minion-attacker-id minion-defense-id})
           (update-minion minion-attack-id :attacks-performed-this-turn 1)))))
 
 (defn attack-hero
@@ -235,7 +242,7 @@
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
       (error "This attack is not possible"))
     (-> state
-        (deal-damages attacked-player-id value-attack-attack)
+        (deal-damages attacked-player-id value-attack-attack {:minion-attacker-id minion-attack-id})
         (update-minion minion-attack-id :attacks-performed-this-turn 1))))
 
 
