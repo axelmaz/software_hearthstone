@@ -251,5 +251,187 @@
                     (let [minions-list (get-minions state)
                           deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
                       (reduce deal-one-damage state minions-list)))
-    }})
+    }
+
+   ;;New Cards Sprint 3
+   "Blubber Baron"
+   {:attack      1
+    :description "Whenever you summon a Battlecry minion while this is in your hand gain +1/+1."
+    :health      1
+    :mana-cost   3
+    :name        "Blubber Baron"
+    :rarity      :epic
+    :set         :mean-streets-of-gadgetzan
+    :type        :minion}
+
+   "Malorne"
+   {:description "Deathrattle: Shuffle this minion into your deck."
+    :name        "Malorne"
+    :type        :minion
+    :mana-cost   7
+    :class       :druid
+    :health      7
+    :set         :goblins-vs-gnomes
+    :rarity      :legendary
+    :attack      9}
+
+   "Far Sight"
+   {:class       :shaman
+    :description "Draw a card. That card costs (3) less."
+    :mana-cost   3
+    :name        "Far Sight"
+    :rarity      :epic
+    :set         :classic
+    :type        :spell}
+
+   "Abusive Sergeant"
+   {:attack      1
+    :description "Battlecry: Give a minion +2 Attack this turn."
+    :health      1
+    :mana-cost   1
+    :name        "Abusive Sergeant"
+    :rarity      :common
+    :set         :classic
+    :type        :minion}
+
+   "Maexxna"
+   {:attack      2
+    :description "Destroy any minion damaged by this minion."
+    :health      8
+    :mana-cost   6
+    :name        "Maexxna"
+    :rarity      :legendary
+    :set         :curse-of-naxxramas
+    :type        :minion}
+
+   "Explosive Trap"
+   {:class       :hunter
+    :description "Secret: When your hero is attacked deal 2 damage to all enemies."
+    :mana-cost   2
+    :name        "Explosive Trap"
+    :rarity      :common
+    :set         :classic
+    :type        :spell}
+
+   "Steward of Darkshire"
+   {:description "Whenever you summon a 1-Health minion, give it Divine Shield."
+    :name        "Steward of Darkshire"
+    :type        :minion
+    :mana-cost   3
+    :class       :paladin
+    :health      3
+    :set         :whispers-of-the-old-gods
+    :rarity      :rare
+    :attack      3}
+
+   "Doomsayer"
+   {:attack      0
+    :description "At the start of your turn destroy ALL minions."
+    :health      7
+    :mana-cost   2
+    :name        "Doomsayer"
+    :rarity      :epic
+    :set         :classic
+    :type        :minion}
+
+   "Nat Pagle"
+   {:attack      0
+    :description "At the start of your turn, you have a 50% chance to draw an extra card."
+    :health      4
+    :mana-cost   2
+    :name        "Nat Pagle"
+    :rarity      :legendary
+    :set         :classic
+    :type        :minion}
+
+   "Spellbreaker"
+   {:attack      4
+    :description "Battlecry: Silence a minion."
+    :health      3
+    :mana-cost   4
+    :name        "Spellbreaker"
+    :rarity      :common
+    :set         :classic
+    :type        :minion}
+
+   "Deathwing"
+   {:attack      12
+    :description "Battlecry: Destroy all other minions and discard your hand."
+    :health      12
+    :mana-cost   10
+    :name        "Deathwing"
+    :rarity      :legendary
+    :set         :classic
+    :type        :minion}
+
+   "Sylvanas Windrunner"
+   {:attack      5
+    :description "Deathrattle: Take control of a random enemy minion."
+    :health      5
+    :mana-cost   6
+    :name        "Sylvanas Windrunner"
+    :rarity      :legendary
+    :set         :hall-of-fame
+    :type        :minion}
+
+   "Noble Sacrifice"
+   {:class       :paladin
+    :description "Secret: When an enemy attacks summon a 2/1 Defender as the new target."
+    :mana-cost   1
+    :name        "Noble Sacrifice"
+    :rarity      :common
+    :set         :classic
+    :type        :spell}
+
+   "Mountain Giant"
+   {:attack      8
+    :description "Costs (1) less for each other card in your hand."
+    :health      8
+    :mana-cost   12
+    :name        "Mountain Giant"
+    :rarity      :epic
+    :set         :classic
+    :type        :minion}
+
+   "Mana Wraith"
+   {:attack      2
+    :description "ALL minions cost (1) more."
+    :health      2
+    :mana-cost   2
+    :name        "Mana Wraith"
+    :rarity      :rare
+    :set         :classic
+    :type        :minion}
+
+   "Lowly Squire"
+   {:attack      1
+    :description "Inspire: Gain +1 Attack."
+    :health      2
+    :mana-cost   1
+    :name        "Lowly Squire"
+    :rarity      :common
+    :set         :the-grand-tournament
+    :type        :minion}
+
+   "Sunwalker"
+   {:attack      4
+    :description "Taunt. Divine Shield."
+    :health      5
+    :mana-cost   6
+    :name        "Sunwalker"
+    :rarity      :rare
+    :set         :classic
+    :type        :minion}
+
+   "Loot Hoarder"
+   {:attack      2
+    :description "Deathrattle: Draw a card."
+    :health      1
+    :mana-cost   2
+    :name        "Loot Hoarder"
+    :rarity      :common
+    :set         :classic
+    :type        :minion}
+
+   })
 (add-definitions! card-definitions)
