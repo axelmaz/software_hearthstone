@@ -279,11 +279,11 @@
 (defn restore-health
   "Deal the value of damage to the corresponding character"
   {:test (fn []
-           (is= (-> (create-game[{:hero (create-hero "Jaina Proudmoore" :damage-taken 12)}])
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 12)}])
                     (restore-health "h1" 10)
                     (get-health "h1"))
                 28)
-           (is= (-> (create-game[{:hero (create-hero "Jaina Proudmoore" :damage-taken 8)}])
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :damage-taken 8)}])
                     (restore-health "p1" 10)
                     (get-health "h1"))
                 30)
@@ -662,6 +662,25 @@
                     (get-hand "p2")
                     (count))
                 2)
+           ; Test Deathwing
+           ; Should remove all the card of the player
+           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n1")
+                                          (create-card "Nightblade" :id "n2")]}
+                                  {:hand [(create-card "Nightblade" :id "n3")
+                                          (create-card "Nightblade" :id "n4")]}])
+                    (use-battlecry (create-card "Deathwing" :owner-id "p1"))
+                    (get-hand "p1")
+                    (count))
+                0)
+           ; Should destroy all the minions
+           (is= (as-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")
+                                               (create-minion "Nightblade" :id "n2")]}
+                                    {:minions [(create-minion "Nightblade" :id "n3")
+                                               (create-minion "Nightblade" :id "n4")]}]) $
+                      (use-battlecry $ (create-card "Deathwing" :owner-id "p1"))
+                      (get-minions $)
+                      (count $))
+                0)
            )}
   ([state card]
    (let [battlecry-function ((get-definition card) :battlecry)]
@@ -687,5 +706,5 @@
                 0))}
   [state]
   (-> state
-    (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
-    (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))
+      (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
+      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))

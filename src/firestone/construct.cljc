@@ -791,7 +791,33 @@
                       (map :id $))
                 ["n2" "n3"]))}
   [state & ids]
-  (reduce remove-minion state ids))
+  (reduce remove-minion state ids)
+  )
+
+(defn remove-all-minions
+  "Removes the all the minions of the board.
+  If a player id is given, remove only the minions of this player"
+  {:test (fn []
+           (is= (as-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")
+                                               (create-minion "Nightblade" :id "n2")]}
+                                    {:minions [(create-minion "Nightblade" :id "n3")
+                                               (create-minion "Nightblade" :id "n4")]}]) $
+                      (remove-all-minions $)
+                      (get-minions $)
+                      (count $))
+                0)
+           (is= (as-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")
+                                               (create-minion "Nightblade" :id "n2")]}
+                                    {:minions [(create-minion "Nightblade" :id "n3")
+                                               (create-minion "Nightblade" :id "n4")]}]) $
+                      (remove-all-minions $ "p1")
+                      (get-minions $)
+                      (count $))
+                2))}
+  ([state]
+  (reduce remove-minion state (map :id (get-minions state))))
+  ([state player-id]
+   (reduce remove-minion state (map :id (get-minions state player-id)))))
 
 
 (defn remove-card-from-hand
@@ -808,6 +834,21 @@
              (fn [hand]
                (->> hand
                     (remove (fn [{id :id}] (= id card-id)))))))
+
+
+(defn remove-all-cards-from-hand
+  "Removes all the card from the hand of the given player"
+  {:test (fn []
+           (is= (as-> (create-game [{:hand [(create-card "Nightblade" :id "n1")
+                                            (create-card "Nightblade" :id "n2")]}
+                                    {:hand [(create-card "Nightblade" :id "n3")
+                                            (create-card "Nightblade" :id "n4")]}]) $
+                      (remove-all-cards-from-hand $ "p1")
+                      (get-hand $ "p1")
+                      (count $))
+                0))}
+  [state player-id]
+   (reduce (fn [s card-id] (remove-card-from-hand s player-id card-id)) state (map :id (get-hand state player-id))))
 
 (defn remove-card-from-deck
   {:test (fn []

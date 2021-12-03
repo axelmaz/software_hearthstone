@@ -21,6 +21,8 @@
                                          get-opposing-player-id
                                          get-owner-id
                                          get-player-id-in-turn
+                                         remove-all-minions
+                                         remove-all-cards-from-hand
                                          set-divine-shield
                                          update-minion]]))
 
@@ -362,7 +364,12 @@
     :name        "Deathwing"
     :rarity      :legendary
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry (fn [state other-args]
+                 (let [played-card-owner-id (:owner-id (:played-card other-args))]
+                   (-> state
+                       (remove-all-minions)
+                       (remove-all-cards-from-hand played-card-owner-id))))}
 
    "Sylvanas Windrunner"
    {:attack      5
