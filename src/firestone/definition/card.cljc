@@ -334,7 +334,13 @@
     :name        "Doomsayer"
     :rarity      :epic
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :effect-start-turn (fn [state other-args]
+                         (let [player-id-in-turn (get-player-id-in-turn state)
+                               owner-id (:owner-id (:minion-play-effect other-args))]
+                           (if (= player-id-in-turn owner-id)
+                             (remove-all-minions state)
+                             state)))}
 
    "Nat Pagle"
    {:attack      0

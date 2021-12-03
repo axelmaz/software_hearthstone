@@ -128,7 +128,23 @@
                     (get-hand "p2")
                     (first)
                     (:name))
-                "Battle Rage"))}
+                "Battle Rage")
+           ; test Doomsayer : should remove all minions if it is its turn
+           (is= (-> (create-game [{:minions [(create-minion "Defender")
+                                             (create-minion "Doomsayer")]}
+                                  {:minions [(create-minion "Defender")]}])
+                    (listener-effect :effect-start-turn)
+                    (get-minions)
+                    (count))
+                0)
+           ; test Doomsayer : should not remove all minions if it is not its turn
+           (is= (-> (create-game [{:minions [(create-minion "Defender")]}
+                                  {:minions [(create-minion "Defender")
+                                             (create-minion "Doomsayer")]}])
+                    (listener-effect :effect-start-turn)
+                    (get-minions)
+                    (count))
+                3))}
   ([state event other-args]
    (let [minions (get-minions state (get-player-id-in-turn state))
          function-of-the-effect (fn [a minion]
