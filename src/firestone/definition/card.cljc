@@ -446,7 +446,10 @@
     :name        "Loot Hoarder"
     :rarity      :common
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :deathrattle (fn [state other-args]
+                   (let [owner-id (:owner-id (:minion-play-effect other-args))]
+                      (draw-card state owner-id)))}
 
    })
 (add-definitions! card-definitions)

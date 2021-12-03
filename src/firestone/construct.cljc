@@ -765,6 +765,71 @@
   [state ids key function-or-value]
   (reduce (fn [s id] (update-minion s id key function-or-value)) state ids))
 
+(defn listener-effect
+  "Apply the effect of the listener which correspond to the event of all the minions on the board which have one"
+  {:test (fn []
+           ; The end-turn effect of Ragnaros the Firelord is to deal 8 damages to a random enemy.
+           (is= (-> (create-game [{:minions [(create-card "Ragnaros the Firelord")]}])
+                    (listener-effect :effect-end-turn)
+                    (get-health "h2"))
+                22)
+           (is= (-> (create-game [{:minions [(create-card "Ragnaros the Firelord")]}
+                                  {:minions [(create-card "Nightblade" :id "n1")
+                                             (create-card "Nightblade" :id "n2" :health 12)]}])
+                    (listener-effect :effect-end-turn)
+                    (get-health "n2"))
+                4)
+           ; The damaged minion effect of Armorsmith is to give 1 armor to the hero every-time a friendly-minion take damage
+           (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
+                                             (create-card "Nightblade" :id "n")]}])
+                    (listener-effect :effect-minion-takes-damage {:minion-takes-damage (create-minion "Nightblade" :id "n" :owner-id "p1")})
+                    (get-armor "h1"))
+                1)
+           (is= (-> (create-game [{:minions [(create-card "Armorsmith" :id "a")
+                                             (create-card "Nightblade" :id "n")
+                                             (create-card "Armorsmith" :id "a")]}])
+                    (listener-effect :effect-minion-takes-damage {:minion-takes-damage (create-minion "Nightblade" :id "n" :owner-id "p1")})
+                    (get-armor "h1"))
+                2)
+           (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "a")
+                                             (create-card "Nightblade" :id "n")
+                                             (create-card "Nightblade" :id "m")]}])
+                    (listener-effect :effect-minion-takes-damage {:minion-takes-damage (create-minion "Nightblade" :id "n" :owner-id "p1")})
+                    (get-armor "h1"))
+                0)
+           ; :effect-cast-spell effect test
+           (is= (-> (create-game [{:minions [(create-card "Lorewalker Cho" :id "a")]}])
+                    (listener-effect :effect-cast-spell {:card-spell-casted (create-card "Battle Rage" :id "b" :owner-id "p1")})
+                    (get-hand "p2")
+                    (first)
+                    (:name))
+                "Battle Rage")
+           ; test Doomsayer : should remove all minions if it is its turn
+           (is= (-> (create-game [{:minions [(create-minion "Defender")
+                                             (create-minion "Doomsayer")]}
+                                  {:minions [(create-minion "Defender")]}])
+                    (listener-effect :effect-start-turn)
+                    (get-minions)
+                    (count))
+                0)
+           ; test Doomsayer : should not remove all minions if it is not its turn
+           (is= (-> (create-game [{:minions [(create-minion "Defender")]}
+                                  {:minions [(create-minion "Defender")
+                                             (create-minion "Doomsayer")]}])
+                    (listener-effect :effect-start-turn)
+                    (get-minions)
+                    (count))
+                3))}
+  ([state event other-args]
+   (let [minions (get-minions state (get-player-id-in-turn state))
+         function-of-the-effect (fn [a minion]
+                                  (let [function-result (event (get-definition (:name minion)))]
+                                    (if (some? function-result)
+                                      (function-result a (assoc other-args :minion-play-effect minion))
+                                      a)))]
+     (reduce function-of-the-effect state minions)))
+  ([state event]
+   (listener-effect state event {})))
 
 (defn remove-minion
   "Removes a minion with the given id from the state."
@@ -772,13 +837,22 @@
            (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
                     (remove-minion "n")
                     (get-minions))
-                []))}
+                [])
+           ;The deathrattle should be played when a minion is removed
+           (is= (-> (create-game [{:minions [(create-minion "Loot Hoarder" :id "n")]
+                                   :deck [(create-card "Nigthblade")]}])
+                    (remove-minion "n")
+                    (get-hand "p1")
+                    (count))
+                1))}
   [state id]
   (let [owner-id (:owner-id (get-minion state id))]
-    (update-in state
+    (-> state
+        (listener-effect :deathrattle {:minion-play-effect get-minion state id})
+        (update-in
                [:players owner-id :minions]
                (fn [minions]
-                 (remove (fn [m] (= (:id m) id)) minions)))))
+                 (remove (fn [m] (= (:id m) id)) minions))))))
 
 
 (defn remove-minions

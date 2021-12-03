@@ -25,12 +25,12 @@
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
+                                         listener-effect
                                          remove-card-from-hand
                                          update-minion]]
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [cast-spell
                                     deal-damages
-                                    listener-effect
                                     start-turn-reset
                                     summon-minion
                                     use-battlecry
