@@ -52,7 +52,7 @@
                  :entity-type                 :minion
                  :name                        "Nightblade"
                  :id                          "n"
-                 :divine-shield nil})
+                 :effect {}})
            (is= (create-minion "Argent Squire"
                                :id "n"
                                :attacks-performed-this-turn 1)
@@ -61,13 +61,15 @@
                  :entity-type                 :minion
                  :name                        "Argent Squire"
                  :id                          "n"
-                 :divine-shield true}))}
+                 :effect {:divine-shield true}}))}
   [name & kvs]
   (let [definition (get-definition name)                    ; Will be used later
         minion (assoc {:damage-taken                0
                        :entity-type                 :minion
                        :name                        name
-                       :attacks-performed-this-turn 0} :divine-shield (:divine-shield definition))]
+                       :attacks-performed-this-turn 0}
+                 :effect
+                 (or (:effect definition) {}))]
     (if (empty? kvs)
       minion
       (apply assoc minion kvs))))
@@ -406,7 +408,7 @@
                                                                    :id          "c4"
                                                                    :name        "Snake"
                                                                    :owner-id    "p1"}]
-                                                       :minions  [{:divine-shield nil
+                                                       :minions  [{:effect {}
                                                                    :damage-taken                0
                                                                    :attacks-performed-this-turn 0
                                                                    :added-to-board-time-id      2
@@ -956,10 +958,11 @@
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
                     (set-divine-shield "n1")
                     (get-minion "n1")
+                    (:effect)
                     (:divine-shield))
                 true))}
   [state minion-id]
-  (update-minion state minion-id :divine-shield true))
+  (update-minion state minion-id :effect (fn [effect] (assoc effect :divine-shield true))))
 
 (defn remove-divine-shield
   {:test (fn []
@@ -967,10 +970,11 @@
                     (set-divine-shield "n1")
                     (remove-divine-shield "n1")
                     (get-minion "n1")
+                    (:effect)
                     (:divine-shield))
                 false))}
   [state minion-id]
-  (update-minion state minion-id :divine-shield false))
+  (update-minion state minion-id :effect (fn [effect] (assoc effect :divine-shield false))))
 
 (defn is-divine-shield?
   {:test (fn []
@@ -987,7 +991,7 @@
                     (is-divine-shield? "n1"))
                 false))}
   [state minion-id]
-  (boolean (:divine-shield (get-minion state minion-id))))
+  (boolean (:divine-shield (:effect (get-minion state minion-id)))))
 
 
 (defn draw-for-each-damaged

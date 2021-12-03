@@ -47,15 +47,15 @@
                        (set-divine-shield state target-minion-id))))}
 
    "Argent Squire"
-   {:attack        1
-    :description   "Divine Shield"
-    :health        1
-    :mana-cost     1
-    :name          "Argent Squire"
-    :rarity        :common
-    :set           :classic
-    :type          :minion
-    :divine-shield true}
+   {:attack      1
+    :description "Divine Shield"
+    :health      1
+    :mana-cost   1
+    :name        "Argent Squire"
+    :rarity      :common
+    :set         :classic
+    :type        :minion
+    :effect      {:divine-shield true}}
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
@@ -327,14 +327,14 @@
     :attack      3}
 
    "Doomsayer"
-   {:attack      0
-    :description "At the start of your turn destroy ALL minions."
-    :health      7
-    :mana-cost   2
-    :name        "Doomsayer"
-    :rarity      :epic
-    :set         :classic
-    :type        :minion
+   {:attack            0
+    :description       "At the start of your turn destroy ALL minions."
+    :health            7
+    :mana-cost         2
+    :name              "Doomsayer"
+    :rarity            :epic
+    :set               :classic
+    :type              :minion
     :effect-start-turn (fn [state other-args]
                          (let [player-id-in-turn (get-player-id-in-turn state)
                                owner-id (:owner-id (:minion-play-effect other-args))]
@@ -371,11 +371,11 @@
     :rarity      :legendary
     :set         :classic
     :type        :minion
-    :battlecry (fn [state other-args]
-                 (let [played-card-owner-id (:owner-id (:played-card other-args))]
-                   (-> state
-                       (remove-all-minions)
-                       (remove-all-cards-from-hand played-card-owner-id))))}
+    :battlecry   (fn [state other-args]
+                   (let [played-card-owner-id (:owner-id (:played-card other-args))]
+                     (-> state
+                         (remove-all-minions)
+                         (remove-all-cards-from-hand played-card-owner-id))))}
 
    "Sylvanas Windrunner"
    {:attack      5
@@ -434,7 +434,8 @@
     :name        "Sunwalker"
     :rarity      :rare
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :effect      {:taunt true :divine-shield true}}
 
    "Loot Hoarder"
    {:attack      2
