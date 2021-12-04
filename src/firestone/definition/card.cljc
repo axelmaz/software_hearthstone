@@ -8,6 +8,7 @@
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
+                                         add-card-to-deck
                                          add-specific-cards-to-hand
                                          create-card
                                          draw-card
@@ -21,7 +22,9 @@
                                          get-opposing-player-id
                                          get-owner-id
                                          get-player-id-in-turn
-                                         set-divine-shield
+                                         remove-all-minions
+                                         remove-all-cards-from-hand
+                                         set-effect
                                          update-minion]]))
 
 (def card-definitions
@@ -42,18 +45,18 @@
                          target-minion-id (:target-id other-args)]
                      (if-not (friendly? state (:id played-card) target-minion-id)
                        (error "invalid target")
-                       (set-divine-shield state target-minion-id))))}
+                       (set-effect state target-minion-id :divine-shield))))}
 
    "Argent Squire"
-   {:attack        1
-    :description   "Divine Shield"
-    :health        1
-    :mana-cost     1
-    :name          "Argent Squire"
-    :rarity        :common
-    :set           :classic
-    :type          :minion
-    :divine-shield true}
+   {:attack      1
+    :description "Divine Shield"
+    :health      1
+    :mana-cost   1
+    :name        "Argent Squire"
+    :rarity      :common
+    :set         :classic
+    :type        :minion
+    :effect      {:divine-shield true}}
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
@@ -198,7 +201,7 @@
     :set         :basic
     :description "Battlecry: Deal 3 damage to the enemy hero."
     :battlecry   (fn [state other-args]
-                   (deal-damages state (get-opposing-player-id state) 3))}
+                   (deal-damages state (get-opposing-player-id state) 3 {}))}
 
    "Ragnaros the Firelord"
    {:attack             8
@@ -228,7 +231,7 @@
                           target-minion-id (:target-id other-args)
                           owner-id (get-in card [:owner-id])
                           number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
-                      (deal-damages state target-minion-id number-armor)))}
+                      (deal-damages state target-minion-id number-armor {})))}
 
    "Snake"
    {:name      "Snake"
@@ -249,7 +252,7 @@
     :type         :spell
     :effect-spell (fn [state other-args]
                     (let [minions-list (get-minions state)
-                          deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1))]
+                          deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1 {}))]
                       (reduce deal-one-damage state minions-list)))
     }
 
@@ -273,7 +276,11 @@
     :health      7
     :set         :goblins-vs-gnomes
     :rarity      :legendary
-    :attack      9}
+    :attack      9
+    :deathrattle (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)]
+                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO : if the minion has been modified, keep it. + shuffle the deck after.
 
    "Far Sight"
    {:class       :shaman
@@ -302,7 +309,8 @@
     :name        "Maexxna"
     :rarity      :legendary
     :set         :curse-of-naxxramas
-    :type        :minion}
+    :type        :minion
+    :effect      {:poisonous true}}
 
    "Explosive Trap"
    {:class       :hunter
@@ -325,14 +333,20 @@
     :attack      3}
 
    "Doomsayer"
-   {:attack      0
-    :description "At the start of your turn destroy ALL minions."
-    :health      7
-    :mana-cost   2
-    :name        "Doomsayer"
-    :rarity      :epic
-    :set         :classic
-    :type        :minion}
+   {:attack            0
+    :description       "At the start of your turn destroy ALL minions."
+    :health            7
+    :mana-cost         2
+    :name              "Doomsayer"
+    :rarity            :epic
+    :set               :classic
+    :type              :minion
+    :effect-start-turn (fn [state other-args]
+                         (let [player-id-in-turn (get-player-id-in-turn state)
+                               owner-id (:owner-id (:minion-play-effect other-args))]
+                           (if (= player-id-in-turn owner-id)
+                             (remove-all-minions state)
+                             state)))}
 
    "Nat Pagle"
    {:attack      0
@@ -362,7 +376,12 @@
     :name        "Deathwing"
     :rarity      :legendary
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry   (fn [state other-args]
+                   (let [played-card-owner-id (:owner-id (:played-card other-args))]
+                     (-> state
+                         (remove-all-minions)
+                         (remove-all-cards-from-hand played-card-owner-id))))}
 
    "Sylvanas Windrunner"
    {:attack      5
@@ -421,7 +440,8 @@
     :name        "Sunwalker"
     :rarity      :rare
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :effect      {:taunt true :divine-shield true}}
 
    "Loot Hoarder"
    {:attack      2
@@ -431,7 +451,10 @@
     :name        "Loot Hoarder"
     :rarity      :common
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :deathrattle (fn [state other-args]
+                   (let [owner-id (:owner-id (:minion-play-effect other-args))]
+                      (draw-card state owner-id)))}
 
    })
 (add-definitions! card-definitions)
