@@ -5,22 +5,44 @@
             [firestone.definitions :refer [get-definition]]))
 
 
+(defn create-power
+  "Creates a power from its definition by the given power name. The additional key-values will override the default values."
+  {:test (fn []
+           (is= (create-power "Fireblast")
+                {:name           "Fireblast"
+                 :type           :hero-power
+                 :mana-cost      2
+                 :used-this-turn 0}))}
+  [name & kvs]
+  (let [mana-cost (:mana-cost (get-definition name))
+        power {:name           name
+               :type           :hero-power
+               :mana-cost      mana-cost
+               :used-this-turn 0}]
+    (if (empty? kvs)
+      power
+      (apply assoc power kvs))))
+
 (defn create-hero
   "Creates a hero from its definition by the given hero name. The additional key-values will override the default values."
   {:test (fn []
            (is= (create-hero "Jaina Proudmoore")
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
-                 :damage-taken 0})
+                 :damage-taken 0
+                 :power        {:name "Fireblast" :type :hero-power :mana-cost 2 :used-this-turn 0}})
            (is= (create-hero "Jaina Proudmoore" :damage-taken 10)
                 {:name         "Jaina Proudmoore"
                  :entity-type  :hero
-                 :damage-taken 10}))}
+                 :damage-taken 10
+                 :power        {:name "Fireblast" :type :hero-power :mana-cost 2 :used-this-turn 0}}))}
   ; Variadic functions [https://clojure.org/guides/learn/functions#_variadic_functions]
   [name & kvs]
-  (let [hero {:name         name
+  (let [power-name (:hero-power (get-definition name))
+        hero {:name         name
               :entity-type  :hero
-              :damage-taken 0}]
+              :damage-taken 0
+              :power        (create-power power-name)}]
     (if (empty? kvs)
       hero
       (apply assoc hero kvs))))
@@ -52,7 +74,7 @@
                  :entity-type                 :minion
                  :name                        "Nightblade"
                  :id                          "n"
-                 :effect {}})
+                 :effect                      {}})
            (is= (create-minion "Sunwalker"
                                :id "n"
                                :attacks-performed-this-turn 1)
@@ -61,7 +83,7 @@
                  :entity-type                 :minion
                  :name                        "Sunwalker"
                  :id                          "n"
-                 :effect {:taunt true :divine-shield true}}))}
+                 :effect                      {:taunt true :divine-shield true}}))}
   [name & kvs]
   (let [definition (get-definition name)                    ; Will be used later
         minion (assoc {:damage-taken                0
@@ -95,7 +117,8 @@
                                                        :hero     {:name         "Jaina Proudmoore"
                                                                   :id           "r"
                                                                   :damage-taken 0
-                                                                  :entity-type  :hero}}
+                                                                  :entity-type  :hero
+                                                                  :power        {:name "Fireblast" :type :hero-power :mana-cost 2 :used-this-turn 0}}}
                                                  "p2" {:id       "p2"
                                                        :mana     10
                                                        :max-mana 10
@@ -105,7 +128,8 @@
                                                        :hero     {:name         "Thrall"
                                                                   :id           "h2"
                                                                   :damage-taken 0
-                                                                  :entity-type  :hero}}}
+                                                                  :entity-type  :hero
+                                                                  :power        {:name "Totemic Call" :type :hero-power :mana-cost 2 :used-this-turn 0}}}}
                  :counter                       1
                  :minion-ids-summoned-this-turn []}))}
   ; Multiple arity of a function [https://clojure.org/guides/learn/functions#_multi_arity_functions]
@@ -408,7 +432,7 @@
                                                                    :id          "c4"
                                                                    :name        "Snake"
                                                                    :owner-id    "p1"}]
-                                                       :minions  [{:effect {}
+                                                       :minions  [{:effect                      {}
                                                                    :damage-taken                0
                                                                    :attacks-performed-this-turn 0
                                                                    :added-to-board-time-id      2
@@ -420,7 +444,8 @@
                                                        :hero     {:name         "Jaina Proudmoore"
                                                                   :id           "h1"
                                                                   :entity-type  :hero
-                                                                  :damage-taken 0}}
+                                                                  :damage-taken 0
+                                                                  :power        {:name "Fireblast" :type :hero-power :mana-cost 2 :used-this-turn 0}}}
                                                  "p2" {:id       "p2"
                                                        :mana     10
                                                        :max-mana 10
@@ -430,7 +455,8 @@
                                                        :hero     {:name         "Thrall"
                                                                   :id           "h2"
                                                                   :entity-type  :hero
-                                                                  :damage-taken 0}}}
+                                                                  :damage-taken 0
+                                                                  :power        {:name "Totemic Call" :type :hero-power :mana-cost 2 :used-this-turn 0}}}}
                  :counter                       5
                  :minion-ids-summoned-this-turn []}))}
   ([data & kvs]
@@ -859,9 +885,9 @@
     (-> state
         (listener-effect :deathrattle {:minion-play-effect get-minion state id})
         (update-in
-               [:players owner-id :minions]
-               (fn [minions]
-                 (remove (fn [m] (= (:id m) id)) minions))))))
+          [:players owner-id :minions]
+          (fn [minions]
+            (remove (fn [m] (= (:id m) id)) minions))))))
 
 
 (defn remove-minions
@@ -900,7 +926,7 @@
                       (count $))
                 2))}
   ([state]
-  (reduce remove-minion state (map :id (get-minions state))))
+   (reduce remove-minion state (map :id (get-minions state))))
   ([state player-id]
    (reduce remove-minion state (map :id (get-minions state player-id)))))
 
@@ -933,7 +959,7 @@
                       (count $))
                 0))}
   [state player-id]
-   (reduce (fn [s card-id] (remove-card-from-hand s player-id card-id)) state (map :id (get-hand state player-id))))
+  (reduce (fn [s card-id] (remove-card-from-hand s player-id card-id)) state (map :id (get-hand state player-id))))
 
 (defn remove-card-from-deck
   {:test (fn []
@@ -1188,8 +1214,8 @@
   "Return a sequence of id corresponding to the minions of the player that have taunt. "
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-minion "Sunwalker" :id "n1")
-                                                (create-minion "Sunwalker" :id "n2")]}])
-                       (get-taunt-minions-id "p1"))
+                                             (create-minion "Sunwalker" :id "n2")]}])
+                    (get-taunt-minions-id "p1"))
                 ["n1" "n2"])
            (is= (-> (create-game [{:minions [(create-minion "Sunwalker" :id "n1")
                                              (create-minion "Sunwalker" :id "n2")]}])
