@@ -8,6 +8,7 @@
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
+                                         add-card-to-deck
                                          add-specific-cards-to-hand
                                          create-card
                                          draw-card
@@ -275,7 +276,11 @@
     :health      7
     :set         :goblins-vs-gnomes
     :rarity      :legendary
-    :attack      9}
+    :attack      9
+    :deathrattle (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)]
+                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO : if the minion has been modified, keep it. + shuffle the deck after.
 
    "Far Sight"
    {:class       :shaman

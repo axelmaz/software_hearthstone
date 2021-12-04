@@ -839,12 +839,21 @@
                     (get-minions))
                 [])
            ;The deathrattle should be played when a minion is removed
+           ; Loot Hoarder
            (is= (-> (create-game [{:minions [(create-minion "Loot Hoarder" :id "n")]
-                                   :deck [(create-card "Nigthblade")]}])
+                                   :deck    [(create-card "Nigthblade")]}])
                     (remove-minion "n")
                     (get-hand "p1")
                     (count))
-                1))}
+                1)
+           ; Malorne
+           (is= (-> (create-game [{:minions [(create-minion "Malorne" :id "n")]
+                                   :deck    [(create-card "Nigthblade")]}])
+                    (remove-minion "n")
+                    (get-deck "p1")
+                    (count))
+                2)
+           )}
   [state id]
   (let [owner-id (:owner-id (get-minion state id))]
     (-> state
