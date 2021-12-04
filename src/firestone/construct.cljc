@@ -1,5 +1,7 @@
 (ns firestone.construct
-  (:require [ysera.test :refer [is is-not is= error?]]
+  (:require [ysera.error :refer [error]]
+            [ysera.random :refer [random-nth]]
+            [ysera.test :refer [is is-not is= error?]]
             [firestone.definitions :refer [get-definition]]))
 
 
@@ -49,13 +51,23 @@
                  :damage-taken                0
                  :entity-type                 :minion
                  :name                        "Nightblade"
-                 :id                          "n"}))}
+                 :id                          "n"
+                 :divine-shield nil})
+           (is= (create-minion "Argent Squire"
+                               :id "n"
+                               :attacks-performed-this-turn 1)
+                {:attacks-performed-this-turn 1
+                 :damage-taken                0
+                 :entity-type                 :minion
+                 :name                        "Argent Squire"
+                 :id                          "n"
+                 :divine-shield true}))}
   [name & kvs]
   (let [definition (get-definition name)                    ; Will be used later
-        minion {:damage-taken                0
-                :entity-type                 :minion
-                :name                        name
-                :attacks-performed-this-turn 0}]
+        minion (assoc {:damage-taken                0
+                       :entity-type                 :minion
+                       :name                        name
+                       :attacks-performed-this-turn 0} :divine-shield (:divine-shield definition))]
     (if (empty? kvs)
       minion
       (apply assoc minion kvs))))
@@ -140,15 +152,24 @@
   [state]
   (:player-id-in-turn state))
 
-(defn get-opposing-player-id
+
+
+(defn get-deck
   {:test (fn []
            (is= (-> (create-empty-state)
-                    (get-opposing-player-id))
-                "p2"))}
-  [state]
-  (if (= (get-player-id-in-turn state) "p1")
-    "p2"
-    "p1"))
+                    (get-deck "p1"))
+                []))}
+  [state player-id]
+  (get-in state [:players player-id :deck]))
+
+
+(defn get-hand
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (get-hand "p1"))
+                []))}
+  [state player-id]
+  (get-in state [:players player-id :hand]))
 
 (defn get-minions
   "Returns the minions on the board for the given player-id or for both players."
@@ -172,24 +193,6 @@
         (vals)
         (map :minions)
         (apply concat))))
-
-
-(defn get-deck
-  {:test (fn []
-           (is= (-> (create-empty-state)
-                    (get-deck "p1"))
-                []))}
-  [state player-id]
-  (get-in state [:players player-id :deck]))
-
-
-(defn get-hand
-  {:test (fn []
-           (is= (-> (create-empty-state)
-                    (get-hand "p1"))
-                []))}
-  [state player-id]
-  (get-in state [:players player-id :hand]))
 
 
 (defn- generate-id
@@ -331,6 +334,19 @@
   [state player-id card]
   (add-card-to state player-id card :hand))
 
+(defn add-specific-cards-to-hand
+  "add one card to the hand of a player a certain number of time"
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (add-specific-cards-to-hand "p1" "Nightblade" 5)
+                    (get-hand "p1")
+                    (count))
+                5))}
+  [state player-id card number-of-cards]
+  (if (<= number-of-cards 0)
+    state
+    (add-specific-cards-to-hand (add-card-to-hand state player-id card) player-id card (- number-of-cards 1))))
+
 
 (defn add-cards-to-deck
   {:test (fn []
@@ -390,7 +406,8 @@
                                                                    :id          "c4"
                                                                    :name        "Snake"
                                                                    :owner-id    "p1"}]
-                                                       :minions  [{:damage-taken                0
+                                                       :minions  [{:divine-shield nil
+                                                                   :damage-taken                0
                                                                    :attacks-performed-this-turn 0
                                                                    :added-to-board-time-id      2
                                                                    :entity-type                 :minion
@@ -460,7 +477,6 @@
        (filter (fn [m] (= (:id m) id)))
        (first)))
 
-
 (defn get-players
   {:test (fn []
            (is= (->> (create-game)
@@ -482,6 +498,211 @@
   (->> (get-players state)
        (map :hero)))
 
+(defn get-character
+  "Returns the character with the given id from the state."
+  {:test (fn []
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-character "h1")
+                    (:name))
+                "Jaina Proudmoore")
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-character "n")
+                    (:name))
+                "Nightblade"))}
+  [state id]
+  (or (some (fn [m] (when (= (:id m) id) m))
+            (get-minions state))
+      (some (fn [h] (when (= (:id h) id) h))
+            (get-heroes state))))
+
+(defn get-hero-id-from-player-id
+  "return the id of the heroe of the player with the given id"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (get-hero-id-from-player-id "p1"))
+                "h1"))}
+  [state player-id]
+  (get-in state [:players player-id :hero :id]))
+
+
+
+
+(defn get-opposing-player-id
+  "give the id of the opposing player, opposing the given id, or player not in turn if no id given."
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (get-opposing-player-id))
+                "p2")
+           (is= (-> (create-empty-state)
+                    (get-opposing-player-id "p1"))
+                "p2"))}
+  ([state]
+   (get-opposing-player-id state (get-player-id-in-turn state)))
+  ([state id]
+   (let [players (map :id (get-players state))
+         p1-id (first players)
+         p2-id (first (rest players))]
+     (if (= p1-id id)
+       p2-id
+       p1-id))))
+
+
+
+
+(defn get-random-character
+  "Returns a random character (of the given player or not)."
+  {:test (fn []
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-random-character "p1")
+                    (:name))
+                "Jaina Proudmoore")
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")
+                                             (create-minion "Nightblade" :id "n2")]}])
+                    (get-random-character "p1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")
+                                             (create-minion "Nightblade")]}])
+                    (get-random-character)
+                    (:name)
+                    )
+                "Nightblade"))}
+  ([state player-targeted-id]
+   (let [minion-list (get-minions state player-targeted-id)
+         minion-and-hero-list (conj minion-list (get-character state (get-hero-id-from-player-id state player-targeted-id)))
+         random-character ((random-nth 1 minion-and-hero-list) 1)]
+     random-character))
+  ([state]
+   (let [minion-list (get-minions state)
+         function-append (fn [a, v] (conj a v))
+         minion-and-hero-list (reduce function-append minion-list (get-heroes state))
+         random-character ((random-nth 12 (vec minion-and-hero-list)) 1)]
+     random-character
+     )))
+
+
+(defn get-player-id-from-heroe-id
+  "return the id of the player corresponding to the heroe with the given id"
+  [state heroe-id]
+  {:test (fn []
+           (is= (-> (create-game)
+                    (get-player-id-from-heroe-id "h1"))
+                "p1"))}
+  (let [which-player? (fn [player-id] (= heroe-id (get-hero-id-from-player-id state player-id)))
+        players (get-players state)]
+    (first (filter which-player? (map :id players)))))
+
+(defn get-armor
+  "Returns the armor of the character."
+  {:test (fn []
+           ; hero without armor
+           (is= (-> (create-hero "Jaina Proudmoore")
+                    (get-armor))
+                0)
+           ; hero with armor
+           (is= (-> (create-hero "Jaina Proudmoore" :armor 1)
+                    (get-armor))
+                1)
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-armor "h1"))
+                0)
+           )}
+  ([character]
+   (let [armor (:armor character)]
+     (if (some? armor)
+       armor
+       0)))
+  ([state id]
+   (get-armor (get-character state id))))
+
+(defn get-total-health
+  "Returns the total-health of the character with the given id."
+  {:test (fn []
+           ; If no particular attack value we look in the definition
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-total-health "n"))
+                4)
+           ;else we take the one of the particular minion
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45)]}])
+                    (get-total-health "n"))
+                45)
+           )}
+  ([character]
+   (let [definition (get-definition character)]
+     (or (:health character) (:health definition))))
+
+  ([state id]
+   (let [character (get-character state id)]
+     (get-total-health character))))
+
+(defn get-health
+  "Returns the health of the character."
+  {:test (fn []
+           ; Uninjured minion
+           (is= (-> (create-minion "Nightblade")
+                    (get-health))
+                4)
+           ; Injured minion
+           (is= (-> (create-minion "Nightblade" :damage-taken 1)
+                    (get-health))
+                3)
+           ; Minion in a state
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-health "n"))
+                4)
+           ; Uninjured hero
+           (is= (-> (create-hero "Jaina Proudmoore")
+                    (get-health))
+                30)
+           ; Injured hero
+           (is= (-> (create-hero "Jaina Proudmoore" :damage-taken 2)
+                    (get-health))
+                28)
+           ; Hero in a state
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-health "h1"))
+                30)
+           ;If a minion had a bonus on its health, should be taken in consideration
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45)]}])
+                    (get-health "n"))
+                45)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-health "n"))
+                4)
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :health 45 :damage-taken 20)]}])
+                    (get-health "n"))
+                25)
+           )}
+  ([state id]
+   (get-health (get-character state id)))
+  ([character]
+   {:pre [(map? character) (contains? character :damage-taken)]}
+   (- (get-total-health character) (:damage-taken character))))
+
+(defn get-attack
+  "Returns the attack of the character with the given id."
+  {:test (fn []
+           ; If no particular attack value we look in the definition
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (get-attack "n"))
+                4)
+           ;else we take the one of the particular minion
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n" :attack 45)]}])
+                    (get-attack "n"))
+                45)
+           )}
+  ([character]
+   (let [definition (get-definition character)]
+     (or (:attack character) (:attack definition))))
+  ([state id]
+   (let [character (get-character state id)]
+     (get-attack character))))
 
 (defn replace-minion
   "Replaces a minion with the same id as the given new-minion."
@@ -523,6 +744,24 @@
     (replace-minion state (if (fn? function-or-value)
                             (update minion key function-or-value)
                             (assoc minion key function-or-value)))))
+
+(defn update-minions
+  "Updates the value of the given key for the minions with the given ids. If function-or-value is a value it will be the
+   new value, else if it is a function it will be applied on the existing value to produce the new value."
+  {:test (fn []
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n")]}])
+                    (update-minions ["n"] :damage-taken inc)
+                    (get-minion "n")
+                    (:damage-taken))
+                1)
+           (is= (as-> (create-game [{:minions [(create-minion "Nightblade" :id "n")
+                                               (create-minion "Nightblade" :id "n2")]}]) $
+                      (update-minions $ (map :id (get-minions $ "p1")) :damage-taken 2)
+                      (get-minion $ "n")
+                      (:damage-taken $))
+                2))}
+  [state ids key function-or-value]
+  (reduce (fn [s id] (update-minion s id key function-or-value)) state ids))
 
 
 (defn remove-minion
@@ -655,6 +894,22 @@
           (remove-card-from-deck player-id (:id card))
           (add-card-to-hand player-id card)))))
 
+(defn draw-cards
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-cards "p1" 1)
+                    (get-card-from-hand "p1" "n1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game)
+                    (draw-cards "p1" 5)
+                    (get-in [:players "p1" :hero :damage-taken]))
+                5))}
+  [state player-id number-of-cards]
+  (if (<= number-of-cards 0)
+    state
+    (draw-cards (draw-card state player-id) player-id (- number-of-cards 1))))
+
 (defn set-divine-shield
   {:test (fn []
            (is= (-> (create-game [{:minions [(create-card "Nightblade" :id "n1")]}])
@@ -693,34 +948,9 @@
   [state minion-id]
   (boolean (:divine-shield (get-minion state minion-id))))
 
-(defn give-minion-plus-one
-  "Spell to give a targeted minion +1/+1"
-  {:test (fn []
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:attack (get-minion $ "n1")))
-                5)
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 0)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:health (get-minion $ "n1")))
-                5)
-           (is= (as-> (create-game [{:minions [(create-card "Nightblade" :id "n1" :health 4 :attack 4 :damage-taken 2)]}]) $
-                      (give-minion-plus-one $ "p1" "Nightblade" "n1" 0)
-                      (:damage-taken (get-minion $ "n1")))
-                1))}
-  [state player-id minion-name minion-id pos]
-  (if (= (get-in state [:players player-id :minions pos :damage-taken]) 0)
-    (-> state
-        (update-minion minion-id :health inc)
-        (update-minion minion-id :attack inc))
-    (as-> state $
-          (update-minion $ minion-id :health inc)
-          (update-minion $ minion-id :damage-taken dec)
-          (update-minion $ minion-id :attack inc))
-    ))
 
 (defn draw-for-each-damaged
-  "Spell to give a targeted minion +1/+1"
+  "Make the player draw for each minion damaged he has"
   {:test (fn []
            ;No damaged minion = no draw
            (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
@@ -752,23 +982,74 @@
                 2))}
   [state player-id]
   (let [minions-player-list (get-minions state player-id)
-        function-draw-for-each-damaged (fn [state minion]
-                                         (let [damaged? (> (:damage-taken minion) 0)]
-                                           (if-not damaged?
-                                             state
-                                             (-> state
-                                                 (draw-card player-id)))))]
-    (reduce function-draw-for-each-damaged state minions-player-list)))
+        function-how-many-damaged (fn [number minion]
+                                    (let [damaged? (> (:damage-taken minion) 0)]
+                                      (if-not damaged?
+                                        number
+                                        (inc number))))
+        number-damaged (reduce function-how-many-damaged 0 minions-player-list)]
+    (draw-cards state player-id number-damaged)))
 
-(defn draw-specific-card
-  "Make the player get a specific card 'x' many times"
+
+(defn get-owner-id
+  "give the id of the owner of the character"
   {:test (fn []
-           (is= (as-> (create-game) $
-                      (draw-specific-card $ "p2" "Bananas" 2)
-                      (count (get-in $ [:players "p2" :hand])))
-                2))}
-  [state player-id card amount]
-  (loop [x 1 s state]
-    (if (< x amount)
-      (recur (+ x 1) (add-card-to s player-id card :hand))
-      (add-card-to s player-id card :hand))))
+           ; If the id is a player, should give this player
+           (is= (-> (create-game)
+                    (get-owner-id "p1"))
+                "p1")
+           (is= (-> (create-game)
+                    (get-owner-id "h1"))
+                "p1")
+           (is= (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                    (get-owner-id "n1"))
+                "p1")
+           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n1")]}])
+                    (get-owner-id "n1"))
+                "p1")
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (get-owner-id "n1"))
+                "p1")
+           (error? (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                       (get-owner-id "bad-id"))))}
+
+  [state id]
+  (let [players-id (map :id (get-players state))
+        p1 (first players-id)
+        p2 (first (rest players-id))
+        heroes-id (map :id (get-heroes state))
+        minion (get-minion state id)
+        hand-p1-id (map :id (get-hand state p1))
+        hand-p2-id (map :id (get-hand state p2))
+        deck-p1-id (map :id (get-deck state p1))
+        deck-p2-id (map :id (get-deck state p2))]
+    (if (some #{id} players-id)
+      id
+      (if (some #{id} heroes-id)
+        (get-player-id-from-heroe-id state id)
+        (if (some? minion)
+          (:owner-id minion)
+          (if (or (some #{id} hand-p1-id) (some #{id} deck-p1-id))
+            p1
+            (if (or (some #{id} hand-p2-id) (some #{id} deck-p2-id))
+              p2
+              (error "id : " id " not found")
+              )))))))
+
+(defn friendly?
+  "True if the two characters are friendly "
+  {:test (fn []
+           (is (-> (create-game)
+                   (friendly? "p1" "h1")))
+           (is (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                   (friendly? "n1" "h1")))
+           (is (-> (create-game [{:hand [(create-card "Nightblade" :id "n1")]}])
+                   (friendly? "n1" "h1")))
+           (is-not (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                       (friendly? "n1" "h2")))
+           (error? (-> (create-game [{:minions [(create-minion "Nightblade" :id "n1")]}])
+                       (friendly? "n1" "bad-id"))))}
+  [state id1 id2]
+  (let [owner1 (get-owner-id state id1)
+        owner2 (get-owner-id state id2)]
+    (= owner1 owner2)))
