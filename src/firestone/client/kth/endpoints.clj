@@ -1,7 +1,10 @@
 (ns firestone.client.kth.endpoints
   (:require [clojure.pprint :refer [pprint]]
             [firestone.client.kth.edn-api :refer [create-game!
-                                                  play-minion-card!]]))
+                                                  play-minion-card!
+                                                  end-turn!
+                                                  attack!
+                                                  use-spell!]]))
 
 (defn create-response
   [game]
@@ -29,6 +32,21 @@
                 card-id (:card-id params)
                 player-id (:player-id params)]
             (create-response (play-minion-card! player-id card-id position)))
+          (= uri "/end-turn")
+          (let [player-id (:player-id params)]
+          (create-response (end-turn! player-id)))
+
+          (= uri "/attack")
+          (let [player-id (:player-id params)
+                attacker-card-id (:attacker-id params)
+                defender-card-id (:target-id params)]
+            (create-response (attack! player-id attacker-card-id defender-card-id)))
+
+          (= uri "/play-spell-card")
+          (let [player-id (:player-id params)
+                card-id (:card-id params)
+                target-id (:target-id params)]
+            (create-response (use-spell! player-id card-id target-id)))
 
           (= uri "/engine-settings")
           {:status  200

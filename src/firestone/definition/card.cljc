@@ -56,7 +56,7 @@
     :rarity      :common
     :set         :classic
     :type        :minion
-    :effect      {:divine-shield true}}
+    :states      {:divine-shield true}}
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
@@ -68,7 +68,7 @@
     :set                        :classic
     :rarity                     :rare
     :attack                     1
-    :effect-minion-takes-damage (fn [state other-args]
+    :states-minion-takes-damage (fn [state other-args]
                                   (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                         minion-takes-damage-id (:id (:minion-takes-damage other-args))]
                                     (if (friendly? state minion-play-effect-id minion-takes-damage-id) ;test if it is a friendly minion
@@ -82,7 +82,7 @@
     :name         "Bananas"
     :set          :classic
     :type         :spell
-    :effect-spell (fn [state other-args]
+    :states-spell (fn [state other-args]
                     (let [target-minion-id (:target-id other-args)]
                       (give-minion-plus-attack-and-health state target-minion-id 1)))}
 
@@ -94,7 +94,7 @@
     :rarity       :common
     :set          :classic
     :type         :spell
-    :effect-spell (fn [state other-args]
+    :states-spell (fn [state other-args]
                     (let [card (:spell-played other-args)
                           player-id (:owner-id card)]
                       (draw-for-each-damaged state player-id)))}
@@ -107,7 +107,7 @@
     :rarity       :rare
     :set          :classic
     :type         :spell
-    :effect-spell (fn [state other-args]
+    :states-spell (fn [state other-args]
                     (let [target-minion-id (:target-id other-args)
                           attack (get-attack state target-minion-id)]
                       (-> state
@@ -159,7 +159,7 @@
     :rarity               :rare
     :set                  :classic
     :type                 :minion
-    :effect-summon-minion (fn [state other-args]
+    :states-summon-minion (fn [state other-args]
                             (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                   enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
                               (damage-random state 1 enemy-id)))
@@ -174,7 +174,7 @@
     :rarity            :legendary
     :set               :classic
     :type              :minion
-    :effect-cast-spell (fn [state rest]
+    :states-cast-spell (fn [state rest]
                          (let [card-spell-casted (:card-spell-casted rest)
                                owner-id (:owner-id card-spell-casted)
                                opposing-id (get-opposing-player-id state owner-id)]
@@ -212,8 +212,8 @@
     :rarity             :legendary
     :set                :hall-of-fame
     :type               :minion
-    :effect-cant-attack true
-    :effect-end-turn    (fn [state other-args]
+    :states-cant-attack true
+    :states-end-turn    (fn [state other-args]
                           (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                 enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
                             (damage-random state 8 enemy-id)))}
@@ -226,7 +226,7 @@
     :rarity       :epic
     :set          :classic
     :type         :spell
-    :effect-spell (fn [state other-args]
+    :states-spell (fn [state other-args]
                     (let [card (:spell-played other-args)
                           target-minion-id (:target-id other-args)
                           owner-id (get-in card [:owner-id])
@@ -250,7 +250,7 @@
     :name         "Whirlwind"
     :set          :basic
     :type         :spell
-    :effect-spell (fn [state other-args]
+    :states-spell (fn [state other-args]
                     (let [minions-list (get-minions state)
                           deal-one-damage (fn [s minion] (deal-damages s (:id minion) 1 {}))]
                       (reduce deal-one-damage state minions-list)))
@@ -310,7 +310,7 @@
     :rarity      :legendary
     :set         :curse-of-naxxramas
     :type        :minion
-    :effect      {:poisonous true}}
+    :states      {:poisonous true}}
 
    "Explosive Trap"
    {:class       :hunter
@@ -341,7 +341,7 @@
     :rarity            :epic
     :set               :classic
     :type              :minion
-    :effect-start-turn (fn [state other-args]
+    :states-start-turn (fn [state other-args]
                          (let [player-id-in-turn (get-player-id-in-turn state)
                                owner-id (:owner-id (:minion-play-effect other-args))]
                            (if (= player-id-in-turn owner-id)
@@ -441,7 +441,7 @@
     :rarity      :rare
     :set         :classic
     :type        :minion
-    :effect      {:taunt true :divine-shield true}}
+    :states      {:taunt true :divine-shield true}}
 
    "Loot Hoarder"
    {:attack      2
