@@ -25,7 +25,7 @@
                      (read-string)))]
     (println uri)
     (cond (= uri "/create-game")
-          (create-response (create-game!))
+          (create-response(create-game!))
 
           (= uri "/play-minion-card")
           (let [position (:position params)
@@ -63,9 +63,3 @@
            :body    "<h1>Missing endpoint!</h1>"})
 
     ))
-
-
-(comment
-  (range 10)
-  )
-; (range 10)

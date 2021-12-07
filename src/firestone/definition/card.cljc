@@ -3,6 +3,8 @@
             [firestone.definitions :refer [add-definitions!]]
             [firestone.core :refer [damage-random
                                     deal-damages
+                                    draw-card
+                                    draw-for-each-damaged
                                     give-minion-plus-attack-and-health
                                     restore-health
                                     update-armor
@@ -11,8 +13,6 @@
                                          add-card-to-deck
                                          add-specific-cards-to-hand
                                          create-card
-                                         draw-card
-                                         draw-for-each-damaged
                                          friendly?
                                          get-armor
                                          get-attack
@@ -29,7 +29,6 @@
 
 (def card-definitions
   {
-
    "Argent Protector"
    {:description "Battlecry: Give a friendly minion Divine Shield."
     :name        "Argent Protector"
@@ -56,7 +55,7 @@
     :rarity      :common
     :set         :classic
     :type        :minion
-    :states      {:divine-shield true}}
+    :states      [:divine-shield]}
 
    "Armorsmith"
    {:description                "Whenever a friendly minion takes damage gain 1 Armor."
@@ -280,7 +279,7 @@
     :deathrattle (fn [state other-args]
                    (let [minion-play-effect (:minion-play-effect other-args)
                          owner-id (:owner-id minion-play-effect)]
-                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO : if the minion has been modified, keep it. + shuffle the deck after.
+                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO shuffle the deck after.
 
    "Far Sight"
    {:class       :shaman
@@ -310,7 +309,7 @@
     :rarity      :legendary
     :set         :curse-of-naxxramas
     :type        :minion
-    :states      {:poisonous true}}
+    :states      [:poisonous]}
 
    "Explosive Trap"
    {:class       :hunter
@@ -441,7 +440,7 @@
     :rarity      :rare
     :set         :classic
     :type        :minion
-    :states      {:taunt true :divine-shield true}}
+    :states      [:taunt :divine-shield]}
 
    "Loot Hoarder"
    {:attack      2

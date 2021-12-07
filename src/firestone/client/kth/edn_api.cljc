@@ -1,8 +1,9 @@
 (ns firestone.client.kth.edn-api
-  (:require [firestone.construct :refer [create-game
+  (:require [firestone.construct :refer [create-card
+                                         create-game
+                                         create-hero
                                          create-minion
-                                         create-card
-                                         create-minion
+
                                          get-player-id-in-turn]]
             [firestone.client.kth.mapper :refer [state->client-state]]
             [firestone.core-api :refer [end-turn
@@ -20,23 +21,26 @@
 
 (defn create-game!
   []
-  (let [state (reset! state-atom (create-game [{:mana 10
-                                                :board-entities [(create-minion "Nightblade" :id "n1" :valid-attack-ids ["s2"] :sleepy false :can-attack true)]
-                                                :hand [(create-card "Nightblade")
-                                                       (create-card "Defender")
-                                                       (create-card "Argent Squire")
-                                                       (create-card "King Mukla")
-                                                       (create-card "Bananas" :event :after-spell-card-played)]
-                                                :deck [(create-card "Knife Juggler")]
-                                                :hero "Jaina Proudmoore"}
-                                               {:mana 10
-                                                :board-entities [(create-minion "Snake" :id "s2" :valid-attack-ids ["n1"] :sleepy false :can-attack true)]
-                                                :hand [(create-card "Nightblade")
-                                                       (create-card "Defender")
-                                                       (create-card "Argent Squire")
-                                                       (create-card "King Mukla")]
-                                                :deck [(create-card "Knife Juggler")]
-                                                :hero "Garrosh Hellscream"}]))]
+  (let [state (reset! state-atom
+                      (create-game [{:mana           10
+                                     :board-entities [(create-minion "Nightblade" :id "n1" :sleepy false)]
+                                     :hand           [(create-card "Nightblade")
+                                                      (create-card "Defender")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Whirlwind")
+                                                      (create-card "King Mukla")
+                                                      (create-card "Bananas")]
+                                     :deck           [(create-card "Knife Juggler")
+                                                      (create-card "Nightblade")]
+                                     :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
+                                    {:mana           10
+                                     :board-entities [(create-minion "Snake" :id "s2" :valid-attack-ids ["n1"] :can-attack false)]
+                                     :hand           [(create-card "Nightblade")
+                                                      (create-card "Defender")
+                                                      (create-card "Argent Squire")
+                                                      (create-card "King Mukla")]
+                                     :deck           [(create-card "Knife Juggler")]
+                                     :hero           (create-hero "Garrosh Hellscream" :health 25)}]))]
     (time (response (state->client-state state)))))
 
 (defn play-minion-card!

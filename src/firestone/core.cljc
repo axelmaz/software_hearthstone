@@ -4,14 +4,16 @@
             [ysera.collections :refer [seq-contains?]]
             [clojure.string :refer [includes?]]
             [firestone.definitions :refer [get-definition]]
-            [firestone.construct :refer [add-minion-to-board
+            [firestone.construct :refer [add-card-to-hand
+                                         add-minion-to-board
+                                         card-to-minion
                                          create-card
                                          create-game
                                          create-hero
                                          create-minion
-                                         draw-card
                                          get-armor
                                          get-attack
+                                         get-card-from-hand
                                          get-character
                                          get-deck
                                          get-hand
@@ -30,6 +32,7 @@
                                          get-total-health
                                          is-effect?
                                          listener-effect
+                                         remove-card-from-deck
                                          remove-effect
                                          remove-minion
                                          set-effect
@@ -61,7 +64,7 @@
                    (valid-attack? "p1" "n" "h2")))
            ; Should not be able to attack your own minions
            (is-not (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")
-                                                (create-minion "Defender" :id "d")]}])
+                                                       (create-minion "Defender" :id "d")]}])
                        (valid-attack? "p1" "n" "d")))
            ; Should not be able to attack if it is not your turn
            (is-not (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}
@@ -84,12 +87,12 @@
            ; We could not attack an enemy if another has taunt
            (is-not (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}
                                      {:board-entities [(create-minion "Defender" :id "d")
-                                                (create-minion "Defender" :id "d-taunt" :states {:taunt true})]}])
+                                                       (create-minion "Defender" :id "d-taunt" :states [:taunt])]}])
                        (valid-attack? "p1" "n" "d")))
            ; We could attack an enemy if this enemy has taunt
            (is (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}
                                  {:board-entities [(create-minion "Defender" :id "d")
-                                            (create-minion "Defender" :id "d-taunt" :states {:taunt true})]}])
+                                                   (create-minion "Defender" :id "d-taunt" :states {:taunt true})]}])
                    (valid-attack? "p1" "n" "d-taunt"))))}
   [state player-id attacker-id target-id]
   (let [attacker (get-minion state attacker-id)
@@ -348,7 +351,7 @@
                 nil)
            ;Is the effect of Armorsmith working ?
            (is= (-> (create-game [{:board-entities [(create-card "Armorsmith" :id "a")
-                                             (create-card "Nightblade" :id "n")]}])
+                                                    (create-card "Nightblade" :id "n")]}])
                     (deal-damages-to-minion "n" 1 {})
                     (get-armor "h1"))
                 1)
@@ -493,15 +496,15 @@
   {:test (fn []
            ; With this seed, it is the Nightblade that take a damage.
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith" :id "a")
-                                             (create-minion "Nightblade" :id "n")]
-                                   :hero    (create-hero "Jaina Proudmoore" :id "h1")}])
+                                                    (create-minion "Nightblade" :id "n")]
+                                   :hero           (create-hero "Jaina Proudmoore" :id "h1")}])
                     (damage-random 1 "p1")
                     (get-health "n"))
                 3)
            ; With this seed, it is the h2 that take a damage.
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith" :id "a")
-                                             (create-minion "Nightblade" :id "n")]
-                                   :hero    (create-hero "Jaina Proudmoore" :id "h1")}])
+                                                    (create-minion "Nightblade" :id "n")]
+                                   :hero           (create-hero "Jaina Proudmoore" :id "h1")}])
                     (damage-random 1)
                     (get-health "h2"))
                 29))}
@@ -512,25 +515,106 @@
    (let [random-id (:id (get-random-character state))]
      (deal-damages state random-id value-damages {}))))
 
+
+(defn draw-card
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-card "p1")
+                    (get-card-from-hand "p1" "n1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game)
+                    (draw-card "p1")
+                    (get-in [:players "p1" :hero :damage-taken]))
+                1))}
+  [state player-id]
+  (if (empty? (get-deck state player-id))
+    (let [fatigue (get-in state [:players player-id :hero :fatigue] 1)]
+      (-> state
+          (deal-damages player-id fatigue {})
+          (assoc-in [:players player-id :hero :fatigue] (+ 1 fatigue))))
+    (let [card (nth (get-deck state player-id) 0)]
+      (-> state
+          (remove-card-from-deck player-id (:id card))
+          (add-card-to-hand player-id card)))))
+
+(defn draw-cards
+  {:test (fn []
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-cards "p1" 1)
+                    (get-card-from-hand "p1" "n1")
+                    (:name))
+                "Nightblade")
+           (is= (-> (create-game)
+                    (draw-cards "p1" 5)
+                    (get-in [:players "p1" :hero :damage-taken]))
+                15))}
+  [state player-id number-of-cards]
+  (if (<= number-of-cards 0)
+    state
+    (draw-cards (draw-card state player-id) player-id (- number-of-cards 1))))
+
+(defn draw-for-each-damaged
+  "Make the player draw for each minion damaged he has"
+  {:test (fn []
+           ;No damaged minion = no draw
+           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n1")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-card-from-hand "p1" "n1"))
+                nil)
+           (is= (-> (create-game [{:deck           [(create-card "Nightblade" :id "n1")]
+                                   :board-entities [(create-minion "Argent Protector")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-card-from-hand "p1" "n1")
+                    (count))
+                0)
+           ;if one minion is damaged then draw a card.
+           (is= (-> (create-game [{:deck           [(create-card "Nightblade" :id "n1")
+                                                    (create-card "Nightblade" :id "n2")]
+                                   :board-entities [(create-minion "Argent Protector" :damage-taken 1)]}])
+                    (draw-for-each-damaged "p1")
+                    (get-hand "p1")
+                    (count))
+                1)
+           ;if two minions are damaged then draw two card.
+           (is= (-> (create-game [{:deck           [(create-card "Nightblade" :id "n1")
+                                                    (create-card "Nightblade" :id "n2")]
+                                   :board-entities [(create-minion "Argent Protector" :damage-taken 1 :id "a1")
+                                                    (create-minion "Argent Protector" :damage-taken 1 :id "a2")]}])
+                    (draw-for-each-damaged "p1")
+                    (get-hand "p1")
+                    (count))
+                2))}
+  [state player-id]
+  (let [minions-player-list (get-minions state player-id)
+        function-how-many-damaged (fn [number minion]
+                                    (let [damaged? (> (:damage-taken minion) 0)]
+                                      (if-not damaged?
+                                        number
+                                        (inc number))))
+        number-damaged (reduce function-how-many-damaged 0 minions-player-list)]
+    (draw-cards state player-id number-damaged)))
+
+
 (defn summon-minion
   "Summon the given minion card to the board at the given position (and play the effect if there is one)"
   {:test (fn []
            ; Adding a minion to an empty board
            (is= (as-> (create-game) $
-                      (summon-minion $ "p1" (create-minion "Nightblade" :id "n") 0)
+                      (summon-minion $ "p1" (create-card "Nightblade" :id "n") 0)
                       (get-minions $ "p1")
-                      (map (fn [m] {:id (:id m) :name (:name m)}) $))
-                [{:id "n" :name "Nightblade"}])
+                      (map (fn [m] {:name (:name m)}) $))
+                [{:name "Nightblade"}])
            ; play the listener effect corresponding
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith" :id "a")
-                                             (create-minion "Nightblade" :id "n")]}])
+                                                    (create-minion "Nightblade" :id "n")]}])
                     (summon-minion "p1" (create-card "Knife Juggler") 0)
                     (get-health "h2"))
                 29)
            )}
   [state player-id card position]
   (-> state
-      (add-minion-to-board player-id card position)
+      (add-minion-to-board player-id (card-to-minion card) position)
       (listener-effect :states-summon-minion)))
 
 (defn cast-spell
@@ -545,7 +629,7 @@
                 "Battle Rage")
            ; effect of battle rage should be done
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :damage-taken 1)]
-                                   :deck    [(create-card "Defender")]}])
+                                   :deck           [(create-card "Defender")]}])
                     (cast-spell (create-card "Battle Rage" :owner-id "p1"))
                     (get-hand "p1")
                     (first)
@@ -564,7 +648,7 @@
                 2)
            ; Test "Blessed champion effect : should double the attack
            (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n")]
-                                   :hand    [(create-card "Blessed Champion" :id "ne")]}])
+                                   :hand           [(create-card "Blessed Champion" :id "ne")]}])
                     (cast-spell (create-card "Blessed Champion") "n")
                     (get-attack "n"))
                 8)
@@ -625,15 +709,15 @@
                     (get-health "h2"))
                 27)
            ; The battlecry of "Argent Protector" is to give a divine shield to a targeted minion (a friendly one)
-           (is (-> (create-game [{:hand    [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+           (is (-> (create-game [{:hand           [(create-card "Argent Protector" :owner-id "p1" :id "a")]
                                   :board-entities [(create-minion "Defender" :id "d")
-                                            (create-minion "Defender" :id "d2")]}])
+                                                   (create-minion "Defender" :id "d2")]}])
                    (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
                    (is-effect? "d" :divine-shield)))
            ; The battlecry of "Argent Protector" does not give divine shield to not targeted minion
-           (is-not (-> (create-game [{:hand    [(create-card "Argent Protector" :owner-id "p1" :id "a")]
+           (is-not (-> (create-game [{:hand           [(create-card "Argent Protector" :owner-id "p1" :id "a")]
                                       :board-entities [(create-minion "Defender" :id "d")
-                                                (create-minion "Defender" :id "d2")]}])
+                                                       (create-minion "Defender" :id "d2")]}])
                        (use-battlecry (create-card "Argent Protector" :owner-id "p1" :id "a") "d")
                        (is-effect? "d2" :divine-shield)))
            ; The battlecry of "Argent Protector" should give an error if we try to target an invalid minion
@@ -674,9 +758,9 @@
                 0)
            ; Should destroy all the minions
            (is= (as-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")
-                                               (create-minion "Nightblade" :id "n2")]}
+                                                      (create-minion "Nightblade" :id "n2")]}
                                     {:board-entities [(create-minion "Nightblade" :id "n3")
-                                               (create-minion "Nightblade" :id "n4")]}]) $
+                                                      (create-minion "Nightblade" :id "n4")]}]) $
                       (use-battlecry $ (create-card "Deathwing" :owner-id "p1"))
                       (get-minions $)
                       (count $))
@@ -693,7 +777,7 @@
    ))
 
 (defn start-turn-reset
-  "reset the stuff for the new turn : mana, attacks-performed-this-turn"
+  "reset the stuff for the new turn : mana, attacks-performed-this-turn, sleepy"
   {:test (fn []
            (is= (-> (create-game [{:hero {:mana 6}}])
                     (start-turn-reset)
@@ -703,8 +787,14 @@
                     (start-turn-reset)
                     (get-minion "n1")
                     (:attacks-performed-this-turn))
-                0))}
+                0)
+           (is-not (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1 :sleepy true)]}])
+                       (start-turn-reset)
+                       (get-minion "n1")
+                       (:sleepy))))}
   [state]
   (-> state
       (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
-      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))
+      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)
+      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :can-attack true)
+      (update-minions (map :id (get-minions state)) :sleepy false)))

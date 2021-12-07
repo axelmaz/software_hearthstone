@@ -10,7 +10,6 @@
                                          create-minion
                                          decrease-mana
                                          decrease-mana-with-card
-                                         draw-card
                                          enough-mana?
                                          get-armor
                                          get-attack
@@ -31,6 +30,7 @@
             [firestone.definitions :refer [get-definition]]
             [firestone.core :refer [cast-spell
                                     deal-damages
+                                    draw-card
                                     start-turn-reset
                                     summon-minion
                                     use-battlecry
