@@ -1205,7 +1205,7 @@
         taunt-minions-id (get-taunt-minions-id state other-player-id)]
     (if-not (empty? taunt-minions-id)
       taunt-minions-id
-      (vec(conj (map :id (get-minions state other-player-id)) (get-hero-id-from-player-id state other-player-id))))))
+      (vec(conj (map :id (get-minions state other-player-id))(get-hero-id-from-player-id state other-player-id))))))
 
 (defn card-to-minion
   "Return the minion corresponding to the card."

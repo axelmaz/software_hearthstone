@@ -24,7 +24,7 @@
   (let [state (reset! state-atom
                       (create-game [{:mana           10
                                      :board-entities [(create-minion "Nightblade" :id "n1" :sleepy false)]
-                                     :hand           [(create-card "Nightblade")
+                                     :hand           [(create-card "Argent Protector")
                                                       (create-card "Defender")
                                                       (create-card "Sunwalker")
                                                       (create-card "Whirlwind")

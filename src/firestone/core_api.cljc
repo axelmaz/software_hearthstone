@@ -222,12 +222,24 @@
                     (attack-minion "p1" "m" "n1")
                     (get-minions "p2")
                     (count))
-                0))}
+                0)
+           ;When we attack the hero, it should loose health
+           (is= (-> (create-game)
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                    (attack-hero "p1" "ne")
+                    (get-health "h2"))
+                29)
+           ; Should not be possible to attack twice
+           (error? (-> (create-game)
+                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
+                       (attack-hero "p1" "ne")
+                       (attack-hero "p1" "ne")
+                       )))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
-  (let [value-attack-attack (get-attack state minion-attack-id)]
-    (let [value-attack-defense (get-attack state minion-defense-id)]
+  (let [value-attack-attack (or (get-attack state minion-attack-id) 0)]
+    (let [value-attack-defense (or (get-attack state minion-defense-id) 0)]
       (-> state
           (deal-damages minion-defense-id value-attack-attack {:minion-attacker-id minion-attack-id})
           (update-minion minion-attack-id :attacks-performed-this-turn 1)
@@ -250,7 +262,8 @@
                  ))
      )}
   [state player-id minion-attack-id]
-  (let [attacked-player-id (if (= player-id "p1") "p2" "p1") value-attack-attack (get-attack state minion-attack-id)]
+  (let [attacked-player-id (if (= player-id "p1") "p2" "p1")
+        value-attack-attack (get-attack state minion-attack-id)]
     (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
       (error "This attack is not possible"))
     (-> state

@@ -44,7 +44,9 @@
                          target-minion-id (:target-id other-args)]
                      (if-not (friendly? state (:id played-card) target-minion-id)
                        (error "invalid target")
-                       (set-effect state target-minion-id :divine-shield))))}
+                       (set-effect state target-minion-id :divine-shield))))
+    :valid-target (fn [state card]
+                    (vec(map :id (get-minions state (:owner-id card)))))}
 
    "Argent Squire"
    {:attack      1
