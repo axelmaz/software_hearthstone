@@ -139,7 +139,6 @@
                     (state->client-state)
                     (s/valid? :firestone.client.kth.spec/game-states))))}
   [state]
-  (print state)
   [{:id             "the-game-id"
     :action-index   0
     :player-in-turn (:player-id-in-turn state)
