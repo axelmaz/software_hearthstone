@@ -309,14 +309,14 @@
                                    :attacks-performed-this-turn (get minion :attacks-performed-this-turn))]
     (-> state
         (update-in
-               [:players player-id :board-entities]
-               (fn [minions]
-                 (conj (->> minions
-                            (mapv (fn [m]
-                                    (if (< (:position m) position)
-                                      m
-                                      (update m :position inc)))))
-                       ready-minion))))))
+          [:players player-id :board-entities]
+          (fn [minions]
+            (conj (->> minions
+                       (mapv (fn [m]
+                               (if (< (:position m) position)
+                                 m
+                                 (update m :position inc)))))
+                  ready-minion))))))
 
 
 (defn add-minions-to-board
@@ -709,8 +709,8 @@
                 45)
            )}
   ([character]
-     (or (:health character)  (let [definition (get-definition (:name character))]
-                                (:health definition))))
+   (or (:health character) (let [definition (get-definition (:name character))]
+                             (:health definition))))
 
   ([state id]
    (let [character (get-character state id)]
@@ -1086,10 +1086,10 @@
 (defn remove-effect
   {:test (fn []
            (empty? (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                    (set-effect "n1" :divine-shield)
-                    (remove-effect "n1" :divine-shield)
-                    (get-minion "n1")
-                    (:states))))}
+                       (set-effect "n1" :divine-shield)
+                       (remove-effect "n1" :divine-shield)
+                       (get-minion "n1")
+                       (:states))))}
   [state minion-id effect]
   (update-minion state minion-id :states (fn [list_eff] (remove (fn [eff] (= eff effect)) list_eff))))
 
@@ -1205,7 +1205,7 @@
         taunt-minions-id (get-taunt-minions-id state other-player-id)]
     (if-not (empty? taunt-minions-id)
       taunt-minions-id
-      (vec(conj (map :id (get-minions state other-player-id))(get-hero-id-from-player-id state other-player-id))))))
+      (vec (conj (map :id (get-minions state other-player-id)) (get-hero-id-from-player-id state other-player-id))))))
 
 (defn card-to-minion
   "Return the minion corresponding to the card."

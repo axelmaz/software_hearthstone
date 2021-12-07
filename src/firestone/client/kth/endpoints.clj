@@ -25,16 +25,17 @@
                      (read-string)))]
     (println uri)
     (cond (= uri "/create-game")
-          (create-response(create-game!))
+          (create-response (create-game!))
 
           (= uri "/play-minion-card")
           (let [position (:position params)
                 card-id (:card-id params)
-                player-id (:player-id params)]
-            (create-response (play-minion-card! player-id card-id position)))
+                player-id (:player-id params)
+                target-id (:target-id params)]
+            (create-response (play-minion-card! player-id card-id position target-id)))
           (= uri "/end-turn")
           (let [player-id (:player-id params)]
-          (create-response (end-turn! player-id)))
+            (create-response (end-turn! player-id)))
 
           (= uri "/attack")
           (let [player-id (:player-id params)

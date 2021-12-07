@@ -20,28 +20,28 @@
 
 (defn card-in-hand->client-card-in-hand
   {:test (fn []
-           (let [state (create-game [{:hand [(create-card "Nightblade" :id "n")]
-                                      :board-entities [(create-minion "Nightblade" :id "n2")] }])
+           (let [state (create-game [{:hand           [(create-card "Nightblade" :id "n")]
+                                      :board-entities [(create-minion "Nightblade" :id "n2")]}])
                  card (get-card-from-hand state "p1" "n")]
-           (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card))))) }
-[state card]
-{:attack             (or (:attack card) 0)
- :description        (or (:description (get-definition (:name card))) " ")
- :entity-type        :card
- :health             (or (:health card) 0)
- :id                 (:id card)
- :name               (:name card)
- :mana-cost          (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))
- :original-attack    (or (:attack (get-definition (:name card))) 0)
- :original-health    (or (:health (get-definition (:name card))) 0)
- :original-mana-cost (:mana-cost (get-definition (:name card)))
- :owner-id           (:owner-id card)
- :playable           (enough-mana? state (:owner-id card) card)
- :valid-target-ids   (let [function-valid-target (:valid-target (get-definition (:name card)))]
-                       (if (some? function-valid-target)
-                         (function-valid-target state card)
-                         []))
- :type (get-in card [:type])})
+             (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card)))))}
+  [state card]
+  {:attack             (or (:attack card) 0)
+   :description        (or (:description (get-definition (:name card))) " ")
+   :entity-type        :card
+   :health             (or (:health card) 0)
+   :id                 (:id card)
+   :name               (:name card)
+   :mana-cost          (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))
+   :original-attack    (or (:attack (get-definition (:name card))) 0)
+   :original-health    (or (:health (get-definition (:name card))) 0)
+   :original-mana-cost (:mana-cost (get-definition (:name card)))
+   :owner-id           (:owner-id card)
+   :playable           (enough-mana? state (:owner-id card) card)
+   :valid-target-ids   (let [function-valid-target (:valid-target (get-definition (:name card)))]
+                         (if (some? function-valid-target)
+                           (function-valid-target state card)
+                           []))
+   :type               (get-in card [:type])})
 
 
 (defn minion->client-minion

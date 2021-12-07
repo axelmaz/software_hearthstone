@@ -116,20 +116,32 @@
                     (:name)
                     )
                 "Nightblade"))}
-  [state player-id card-id position]
-  (when-not (= (get-player-id-in-turn state) player-id)
-    (error "The player with id " player-id " is not in turn."))
-  (let [card (get-card-from-hand state player-id card-id)]
-    (when-not card
-      (error "The card with id " card-id " is not in the hand of the given player."))
-    (when-not (enough-mana? state player-id card)
-      (error "Not enough mana."))
-    (-> state
-        (decrease-mana-with-card player-id card)
-        (remove-card-from-hand player-id card-id)
-        (summon-minion player-id card position)
-        (use-battlecry card)
-        )))
+  ([state player-id card-id position]
+   (when-not (= (get-player-id-in-turn state) player-id)
+     (error "The player with id " player-id " is not in turn."))
+   (let [card (get-card-from-hand state player-id card-id)]
+     (when-not card
+       (error "The card with id " card-id " is not in the hand of the given player."))
+     (when-not (enough-mana? state player-id card)
+       (error "Not enough mana."))
+     (-> state
+         (decrease-mana-with-card player-id card)
+         (remove-card-from-hand player-id card-id)
+         (summon-minion player-id card position)
+         (use-battlecry card))))
+  ([state player-id card-id position target-id]
+   (when-not (= (get-player-id-in-turn state) player-id)
+     (error "The player with id " player-id " is not in turn."))
+   (let [card (get-card-from-hand state player-id card-id)]
+     (when-not card
+       (error "The card with id " card-id " is not in the hand of the given player."))
+     (when-not (enough-mana? state player-id card)
+       (error "Not enough mana."))
+     (-> state
+         (decrease-mana-with-card player-id card)
+         (remove-card-from-hand player-id card-id)
+         (summon-minion player-id card position)
+         (use-battlecry card target-id)))))
 
 (defn play-spell-card
   {:test (fn []
@@ -157,25 +169,25 @@
                 7)
            ;The effect of the spell (if there is one) is applied
            (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n" :damage-taken 1)]
-                                   :hand    [(create-card "Battle Rage" :id "br")]
-                                   :deck    [(create-card "Nightblade" :id "n2")]}])
+                                   :hand           [(create-card "Battle Rage" :id "br")]
+                                   :deck           [(create-card "Nightblade" :id "n2")]}])
                     (play-spell-card "p1" "br")
                     (get-hand "p1")
                     (count))
                 1)
            )}
   ([state player-id card-id]
-  (when-not (= (get-player-id-in-turn state) player-id)
-    (error "The player with id " player-id " is not in turn."))
-  (let [card (get-card-from-hand state player-id card-id)]
-    (when-not card
-      (error "The card with id " card-id " is not in the hand of the given player."))
-    (when-not (enough-mana? state player-id card)
-      (error "Not enough mana."))
-    (-> state
-        (remove-card-from-hand player-id card-id)
-        (decrease-mana-with-card player-id card)
-        (cast-spell card))))
+   (when-not (= (get-player-id-in-turn state) player-id)
+     (error "The player with id " player-id " is not in turn."))
+   (let [card (get-card-from-hand state player-id card-id)]
+     (when-not card
+       (error "The card with id " card-id " is not in the hand of the given player."))
+     (when-not (enough-mana? state player-id card)
+       (error "Not enough mana."))
+     (-> state
+         (remove-card-from-hand player-id card-id)
+         (decrease-mana-with-card player-id card)
+         (cast-spell card))))
   ([state player-id card-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)
      (error "The player with id " player-id " is not in turn."))
@@ -226,14 +238,14 @@
            ;When we attack the hero, it should loose health
            (is= (-> (create-game)
                     (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                    (attack-hero "p1" "ne")
+                    (attack-minion "p1" "ne" "h2")
                     (get-health "h2"))
                 29)
            ; Should not be possible to attack twice
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                       (attack-hero "p1" "ne")
-                       (attack-hero "p1" "ne")
+                       (attack-minion "p1" "ne" "h2")
+                       (attack-minion "p1" "ne" "h2")
                        )))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)

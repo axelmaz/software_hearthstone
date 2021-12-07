@@ -437,8 +437,7 @@
            ; Error = return nil
            (is= (-> (create-game)
                     (deal-damages-to-heroe-by-player-id "doesn't exist" 10))
-                nil)
-           )}
+                nil))}
   [state player-id value-damages]
   (let [is-player-id? (reduce (fn [a v]
                                 (if (= v player-id)
@@ -506,12 +505,17 @@
                     (get-minions "p1")
                     (count))
                 0)
+           ;A that has a divine shield should not lose it if it takes 0 damages
+           (is (-> (create-game [{:board-entities [(create-minion "Argent Squire" :id "n1")]}])
+                   (deal-damages "n1" 0 {})
+                   (is-effect? "n1" :divine-shield)))
            )}
   [state id value-damages other-args]
-  (or (deal-damages-to-minion state id value-damages other-args)
-      (deal-damages-to-heroe-by-heroe-id state id value-damages)
-      (deal-damages-to-heroe-by-player-id state id value-damages)
-      ))
+  (if (= value-damages 0)
+    state
+    (or (deal-damages-to-minion state id value-damages other-args)
+        (deal-damages-to-heroe-by-heroe-id state id value-damages)
+        (deal-damages-to-heroe-by-player-id state id value-damages))))
 
 (defn damage-random
   "Add random random seed in the future"
@@ -638,12 +642,12 @@
   (let [minion (card-to-minion card)
         minion-id (:id minion)]
     (-> state
-      (add-minion-to-board player-id minion position)
-      (update
-        :minion-ids-summoned-this-turn
-        (fn [ids]
-          (conj ids (:id minion))))
-      (listener-effect :states-summon-minion))))
+        (add-minion-to-board player-id minion position)
+        (update
+          :minion-ids-summoned-this-turn
+          (fn [ids]
+            (conj ids (:id minion))))
+        (listener-effect :states-summon-minion))))
 
 (defn cast-spell
   "Summon the given minion card to the board at the given position (and play the effect if there is one"
@@ -803,7 +807,6 @@
      (if battlecry-function
        (battlecry-function state {:played-card card :target-id target-id}) state))
    ))
-
 (defn start-turn-reset
   "reset the stuff for the new turn : mana, attacks-performed-this-turn, sleepy"
   {:test (fn []

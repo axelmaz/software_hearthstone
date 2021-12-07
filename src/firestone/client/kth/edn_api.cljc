@@ -44,8 +44,10 @@
     (time (response (state->client-state state)))))
 
 (defn play-minion-card!
-  [player-id card-id position]
-  (time (response (state->client-state (swap! state-atom play-minion-card player-id card-id position)))))
+  ([player-id card-id position]
+   (time (response (state->client-state (swap! state-atom play-minion-card player-id card-id position)))))
+  ([player-id card-id position target-id]
+   (time (response (state->client-state (swap! state-atom play-minion-card player-id card-id position target-id))))))
 
 (defn end-turn!
   [player-id]
@@ -56,5 +58,7 @@
   (time (response (state->client-state (swap! state-atom attack-minion player-id attacker-id defender-id)))))
 
 (defn use-spell!
-  [player-id card-id target-id]
-  (time (response (state->client-state (swap! state-atom play-spell-card player-id card-id target-id)))))
+  ([player-id card-id]
+   (time (response (state->client-state (swap! state-atom play-spell-card player-id card-id)))))
+  ([player-id card-id target-id]
+   (time (response (state->client-state (swap! state-atom play-spell-card player-id card-id target-id))))))
