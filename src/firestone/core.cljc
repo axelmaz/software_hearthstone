@@ -632,9 +632,9 @@
                       (map (fn [m] {:name (:name m)}) $))
                 [{:name "Nightblade"}])
            ; play the listener effect corresponding
-           (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith" :id "a")
-                                                    (create-minion "Nightblade" :id "n")]}])
-                    (summon-minion "p1" (create-card "Knife Juggler") 0)
+           (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith")
+                                                    (create-card "Knife Juggler")]}])
+                    (summon-minion "p1" (create-minion "Nightblade" :id "n") 0)
                     (get-health "h2"))
                 29)
            )}
@@ -642,12 +642,12 @@
   (let [minion (card-to-minion card)
         minion-id (:id minion)]
     (-> state
+        (listener-effect :states-summon-minion)
         (add-minion-to-board player-id minion position)
         (update
           :minion-ids-summoned-this-turn
           (fn [ids]
-            (conj ids (:id minion))))
-        (listener-effect :states-summon-minion))))
+            (conj ids (:id minion)))))))
 
 (defn cast-spell
   "Summon the given minion card to the board at the given position (and play the effect if there is one"
