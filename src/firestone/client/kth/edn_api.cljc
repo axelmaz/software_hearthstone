@@ -34,7 +34,7 @@
                                                       (create-card "Nightblade")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities [(create-minion "Snake" :id "s2" :valid-attack-ids ["n1"] :can-attack false)]
+                                     :board-entities [(create-minion "Snake" :id "s2")]
                                      :hand           [(create-card "Nightblade")
                                                       (create-card "Defender")
                                                       (create-card "Argent Squire")

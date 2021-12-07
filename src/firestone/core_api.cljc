@@ -205,10 +205,10 @@
                     (attack-minion "p1" "ne" "nb")
                     (get-health "ne"))
                 2)
-           ;The attack has to be valid
+           ;The attack has to be invalid : the minion is sleepy
            (error? (-> (create-game)
-                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                       (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
+                       (summon-minion "p1" (create-card "Novice Engineer" :id "ne") 0)
+                       (summon-minion "p2" (create-card "Nightblade" :id "nb") 0)
                        (attack-minion "p2" "ne" "nb")))
            ;The attacker could not attack twice a tour
            (error? (-> (create-game)
@@ -230,8 +230,8 @@
     (let [value-attack-defense (get-attack state minion-defense-id)]
       (-> state
           (deal-damages minion-defense-id value-attack-attack {:minion-attacker-id minion-attack-id})
-          (deal-damages minion-attack-id value-attack-defense {:minion-attacker-id minion-defense-id})
-          (update-minion minion-attack-id :attacks-performed-this-turn 1)))))
+          (update-minion minion-attack-id :attacks-performed-this-turn 1)
+          (deal-damages minion-attack-id value-attack-defense {:minion-attacker-id minion-defense-id})))))
 
 (defn attack-hero
   {:test

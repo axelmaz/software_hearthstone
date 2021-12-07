@@ -83,7 +83,9 @@
     :type         :spell
     :states-spell (fn [state other-args]
                     (let [target-minion-id (:target-id other-args)]
-                      (give-minion-plus-attack-and-health state target-minion-id 1)))}
+                      (give-minion-plus-attack-and-health state target-minion-id 1)))
+    :valid-target (fn [state card]
+                    (vec(map :id (get-minions state))))}
 
    "Battle Rage"
    {:class        :warrior

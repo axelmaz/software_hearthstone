@@ -1,6 +1,8 @@
 (ns firestone.client.kth.mapper
   (:require [firestone.construct :refer [create-game
+                                         enough-mana?
                                          get-attackable-entities-id
+                                         get-card-from-hand
                                          get-health
                                          get-minion
                                          get-minions
@@ -9,10 +11,38 @@
                                          get-total-health
                                          create-minion
                                          create-card]]
+            [firestone.core :refer [can-attack?
+                                    sleepy?]]
             [firestone.definitions :refer [get-definition]]
             [clojure.spec.alpha :as s]
             [ysera.test :refer [is is-not]]
             [firestone.client.kth.spec]))
+
+(defn card-in-hand->client-card-in-hand
+  {:test (fn []
+           (let [state (create-game [{:hand [(create-card "Nightblade" :id "n")]
+                                      :board-entities [(create-minion "Nightblade" :id "n2")] }])
+                 card (get-card-from-hand state "p1" "n")]
+           (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card))))) }
+[state card]
+{:attack             (or (:attack card) 0)
+ :description        (or (:description (get-definition (:name card))) " ")
+ :entity-type        :card
+ :health             (or (:health card) 0)
+ :id                 (:id card)
+ :name               (:name card)
+ :mana-cost          (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))
+ :original-attack    (or (:attack (get-definition (:name card))) 0)
+ :original-health    (or (:health (get-definition (:name card))) 0)
+ :original-mana-cost (:mana-cost (get-definition (:name card)))
+ :owner-id           (:owner-id card)
+ :playable           (enough-mana? state (:owner-id card) card)
+ :valid-target-ids   (let [function-valid-target (:valid-target (get-definition (:name card)))]
+                       (if (some? function-valid-target)
+                         (function-valid-target state card)
+                         []))
+ :type (get-in card [:type])})
+
 
 (defn minion->client-minion
   {:test (fn []
@@ -21,7 +51,7 @@
              (is (s/valid? :firestone.client.kth.spec/minion (minion->client-minion state minion)))))}
   [state minion]
   {:attack           (get-in minion [:attack] 0)
-   :can-attack       (get-in minion [:can-attack] true)
+   :can-attack       (can-attack? state minion)
    :description      (:description (get-definition (:name minion)))
    :entity-type      :minion
    :health           (get-health minion)
@@ -34,7 +64,7 @@
    :owner-id         (:owner-id minion)
    :position         (:position minion)
    :set              (:set (get-definition (:name minion)))
-   :sleepy           (get-in minion [:sleepy] true)
+   :sleepy           (sleepy? state (:id minion))
    :states           (get-in minion [:states] [])
    :valid-attack-ids (or (get-attackable-entities-id state (:owner-id minion)) [])})
 
@@ -91,11 +121,12 @@
                  player (get-player state "p1")]
              (is (s/valid? :firestone.client.kth.spec/player (player->client-player state player)))))}
   [state player]
-  {                                                         ;:board-entities (get-in player [:board-entities] [])
+  {;:board-entities (get-in player [:board-entities] [])
    :board-entities (board-entities->client-board-entities state (get-in player [:board-entities] []))
    :active-secrets (get-in player [:active-secrets] [])
    :deck-size      (count (get-in player [:deck]))
-   :hand           (get-in player [:hand] [])
+   :hand           (->> (get-in player [:hand] [])
+                        (map (fn [cih] (card-in-hand->client-card-in-hand state cih))))
    :id             (:id player)
    :hero           (hero->client-hero state
                                       player
@@ -108,9 +139,9 @@
                     (state->client-state)
                     (s/valid? :firestone.client.kth.spec/game-states))))}
   [state]
+  (print state)
   [{:id             "the-game-id"
-   :action-index   0
-   :player-in-turn (:player-id-in-turn state)
-   :players        (->> (get-players state)
-                        (map (fn [p] (player->client-player state p))))}])
-
+    :action-index   0
+    :player-in-turn (:player-id-in-turn state)
+    :players        (->> (get-players state)
+                         (map (fn [p] (player->client-player state p))))}])

@@ -51,6 +51,26 @@
   [state id]
   (seq-contains? (:minion-ids-summoned-this-turn state) id))
 
+(defn can-attack?
+  {:test (fn []
+           ; Should not be able to attack because already attacked
+           (is-not (as-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n" :attacks-performed-this-turn 1)]}]) $
+                         (can-attack? $ (get-minion $ "n"))))
+           ; Should not be able to attack because sleepy
+           (is-not (as-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}]
+                                      :minion-ids-summoned-this-turn ["n"]) $
+                         (can-attack? $ (get-minion $ "n")))))}
+  [state minion]
+  (let [minion-id (:id minion)
+        number-attack-max (if (is-effect? state minion-id :windfury)
+                            2
+                            1)
+        player-id (:owner-id minion)]
+    (and (not (sleepy? state minion-id))
+         (< (:attacks-performed-this-turn minion) number-attack-max)
+         (not (:states-cant-attack (get-definition minion)))
+         (= (:player-id-in-turn state) player-id)
+         )))
 
 (defn valid-attack?
   "Checks if the attack is valid"
@@ -77,9 +97,9 @@
                                     :minion-ids-summoned-this-turn ["n"])
                        (valid-attack? "p1" "n" "d")))
            ; Should not be able to attack if you already attacked this turn
-           ; (is-not (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n" :attacks-performed-this-turn 1)]}
-           ;                          {:board-entities [(create-minion "Defender" :id "d")]}])
-           ;            (valid-attack? "p1" "n" "d")))
+           (is-not (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n" :attacks-performed-this-turn 1)]}
+                                     {:board-entities [(create-minion "Defender" :id "d")]}])
+                       (valid-attack? "p1" "n" "d")))
            ; Ragnaros the Firelord shouldn't be able to attack
            (is-not (-> (create-game [{:board-entities [(create-minion "Ragnaros the Firelord" :id "n")]}
                                      {:board-entities [(create-minion "Defender" :id "d")]}])
@@ -92,7 +112,7 @@
            ; We could attack an enemy if this enemy has taunt
            (is (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}
                                  {:board-entities [(create-minion "Defender" :id "d")
-                                                   (create-minion "Defender" :id "d-taunt" :states {:taunt true})]}])
+                                                   (create-minion "Defender" :id "d-taunt" :states [:taunt])]}])
                    (valid-attack? "p1" "n" "d-taunt"))))}
   [state player-id attacker-id target-id]
   (let [attacker (get-minion state attacker-id)
@@ -101,11 +121,8 @@
     (and attacker
          (or (empty? taunt-minions) (some #{target-id} taunt-minions))
          target
-         (= (:player-id-in-turn state) player-id)
-         (< (:attacks-performed-this-turn attacker) 1)
-         (not (sleepy? state attacker-id))
          (not= (:owner-id attacker) (:owner-id target))
-         (not (:states-cant-attack (get-definition attacker))))))
+         (can-attack? state attacker))))
 
 (defn update-armor
   "Update (increase or decrease) the armor of the hero of the given player-id."
@@ -368,6 +385,11 @@
                     (get-minions "p1")
                     (count))
                 0)
+           ;A minion already damaged should be more damaged
+           (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1" :damage-taken 1)]}])
+                    (deal-damages-to-minion "n1" 1 {})
+                    (get-health "n1"))
+                2)
            )}
   [state minion-id value-damages other-args]
   (let [is-minion-id? (reduce (fn [a v]
@@ -382,7 +404,7 @@
         (remove-effect state minion-id :divine-shield)
         (-> state
             (listener-effect :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
-            (update-minion minion-id :damage-taken value-damages)
+            (update-minion minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
             (kill-if-dead minion-id)
             (kill-if-damaged-by-poisonous minion-id (:minion-attacker-id other-args)))))))
 
@@ -613,9 +635,15 @@
                 29)
            )}
   [state player-id card position]
-  (-> state
-      (add-minion-to-board player-id (card-to-minion card) position)
-      (listener-effect :states-summon-minion)))
+  (let [minion (card-to-minion card)
+        minion-id (:id minion)]
+    (-> state
+      (add-minion-to-board player-id minion position)
+      (update
+        :minion-ids-summoned-this-turn
+        (fn [ids]
+          (conj ids (:id minion))))
+      (listener-effect :states-summon-minion))))
 
 (defn cast-spell
   "Summon the given minion card to the board at the given position (and play the effect if there is one"
@@ -788,13 +816,12 @@
                     (get-minion "n1")
                     (:attacks-performed-this-turn))
                 0)
-           (is-not (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1 :sleepy true)]}])
+           (is-not (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1)]}]
+                                    :minion-ids-summoned-this-turn ["n1"])
                        (start-turn-reset)
-                       (get-minion "n1")
-                       (:sleepy))))}
+                       (sleepy? "n1"))))}
   [state]
   (-> state
+      (assoc :minion-ids-summoned-this-turn [])
       (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
-      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)
-      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :can-attack true)
-      (update-minions (map :id (get-minions state)) :sleepy false)))
+      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))

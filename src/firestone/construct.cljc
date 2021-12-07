@@ -306,9 +306,9 @@
                                    :attack (get minion :attack)
                                    :health (get minion :health)
                                    :entity-type :minion
-                                   :attacks-performed-this-turn 0
-                                   :sleepy (get minion :sleepy true))]
-    (update-in state
+                                   :attacks-performed-this-turn (get minion :attacks-performed-this-turn))]
+    (-> state
+        (update-in
                [:players player-id :board-entities]
                (fn [minions]
                  (conj (->> minions
@@ -316,7 +316,7 @@
                                     (if (< (:position m) position)
                                       m
                                       (update m :position inc)))))
-                       ready-minion)))))
+                       ready-minion))))))
 
 
 (defn add-minions-to-board
@@ -487,8 +487,7 @@
                                                                          :position                    0
                                                                          :attack                      4
                                                                          :health                      4
-                                                                         :owner-id                    "p1"
-                                                                         :sleepy                      true}]
+                                                                         :owner-id                    "p1"}]
                                                        :hero           {:name         "Jaina Proudmoore"
                                                                         :id           "h1"
                                                                         :entity-type  :hero
@@ -698,7 +697,7 @@
    (get-armor (get-character state id))))
 
 (defn get-total-health
-  "Returns the total-health of the character with the given id."
+  "Returns the total-health of the character."
   {:test (fn []
            ; If no particular attack value we look in the definition
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")]}])
@@ -710,8 +709,8 @@
                 45)
            )}
   ([character]
-   (let [definition (get-definition (:name character))]
-     (or (:health character) (:health definition))))
+     (or (:health character)  (let [definition (get-definition (:name character))]
+                                (:health definition))))
 
   ([state id]
    (let [character (get-character state id)]
@@ -925,8 +924,7 @@
                     (remove-minion "n")
                     (get-deck "p1")
                     (count))
-                2)
-           )}
+                2))}
   [state id]
   (let [owner-id (:owner-id (get-minion state id))]
     (-> state
@@ -1215,5 +1213,6 @@
   (let [name (:name card)
         mana-cost (:mana-cost card)
         health (:health card)
-        attack (:attack card)]
-    (create-minion name :mana-cost mana-cost :health health :attack attack)))
+        attack (:attack card)
+        id (:id card)]
+    (create-minion name :mana-cost mana-cost :health health :attack attack :id id)))
