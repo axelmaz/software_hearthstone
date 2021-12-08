@@ -25,6 +25,7 @@
                                          remove-all-minions
                                          remove-all-cards-from-hand
                                          set-effect
+                                         shuffle-deck
                                          update-minion]]))
 
 (def card-definitions
@@ -280,7 +281,9 @@
     :deathrattle (fn [state other-args]
                    (let [minion-play-effect (:minion-play-effect other-args)
                          owner-id (:owner-id minion-play-effect)]
-                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO : if the minion has been modified, keep it. + shuffle the deck after.
+                     (-> state
+                         (add-card-to-deck owner-id (:name minion-play-effect))
+                         (shuffle-deck owner-id))))}
 
    "Far Sight"
    {:class       :shaman
@@ -454,7 +457,7 @@
     :type        :minion
     :deathrattle (fn [state other-args]
                    (let [owner-id (:owner-id (:minion-play-effect other-args))]
-                      (draw-card state owner-id)))}
+                     (draw-card state owner-id)))}
 
    })
 (add-definitions! card-definitions)
