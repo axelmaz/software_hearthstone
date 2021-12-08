@@ -926,13 +926,24 @@
                     (count))
                 2))}
   [state id]
-  (let [owner-id (:owner-id (get-minion state id))]
+  (let [minion (get-minion state id)
+        owner-id (:owner-id minion)
+        position (:position minion)]
     (-> state
         (listener-effect :deathrattle {:minion-play-effect get-minion state id})
-        (update-in
+        (update-in                                          ;remove the minion
           [:players owner-id :board-entities]
           (fn [minions]
-            (remove (fn [m] (= (:id m) id)) minions))))))
+            (remove (fn [m] (= (:id m) id)) minions)))
+        (update-in                                          ;replace the others to the good position
+          [:players owner-id :board-entities]
+          (fn [minions]
+            (->> minions
+                 (mapv (fn [m]
+                         (if (< (:position m) position)
+                           m
+                           (update m :position dec)))))
+            )))))
 
 
 (defn remove-minions
