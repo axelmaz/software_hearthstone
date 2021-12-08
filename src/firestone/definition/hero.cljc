@@ -9,6 +9,7 @@
     :class      :mage
     :type       :hero
     :health     30
+    :mana       10
     :hero-power "Fireblast"}
 
    "Thrall"
@@ -16,6 +17,7 @@
     :type       :hero
     :class      :shaman
     :health     30
+    :mana       10
     :hero-power "Totemic Call"}
 
    "Garrosh Hellscream"
@@ -23,6 +25,7 @@
     :type       :hero
     :class      :warrior
     :health     30
+    :mana       10
     :hero-power "Armor Up!"}
 
    })
