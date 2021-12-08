@@ -142,8 +142,9 @@
      (-> state
          (decrease-mana-with-card player-id card)
          (remove-card-from-hand player-id card-id)
+         (use-battlecry card target-id)
          (summon-minion player-id card position)
-         (use-battlecry card target-id)))))
+         ))))
 
 (defn play-spell-card
   {:test (fn []

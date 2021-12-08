@@ -293,18 +293,16 @@
                     (get-minions "p1")
                     (count))
                 0)
-           ; Should remove a minion that has no life
+           ; Should return nil if a minion has no life
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}])
-                    (kill-if-dead "n1")
-                    (get-minions "p1")
-                    (count))
-                1)
+                    (kill-if-dead "n1"))
+                nil)
            )}
   [state id]
   (let [minion-health (get-health state id)]
     (if (<= minion-health 0)
       (remove-minion state id)
-      state)))
+      nil)))
 
 (defn kill-if-damaged-by-poisonous
   "If a minion has been damaged by a poisonous minion, should be removed of the state"
@@ -405,11 +403,11 @@
       nil
       (if (is-effect? state minion-id :divine-shield)
         (remove-effect state minion-id :divine-shield)
-        (-> state
-            (listener-effect :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
-            (update-minion minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
-            (kill-if-dead minion-id)
-            (kill-if-damaged-by-poisonous minion-id (:minion-attacker-id other-args)))))))
+        (as-> state $
+            (listener-effect $ :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
+            (update-minion $ minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
+            (or (kill-if-dead $ minion-id)
+                (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker-id other-args))))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"

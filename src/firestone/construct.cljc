@@ -893,7 +893,7 @@
                     (count))
                 3))}
   ([state event other-args]
-   (let [minions (get-minions state (get-player-id-in-turn state))
+   (let [minions (get-minions state (get-player-id-in-turn state)) ;TODO deal with loot hoarder and kniffe juggler, should take all the minions and then handle it in the function
          function-of-the-effect (fn [a minion]
                                   (let [function-result (event (get-definition (:name minion)))]
                                     (if (some? function-result)
