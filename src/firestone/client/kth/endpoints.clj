@@ -4,6 +4,7 @@
                                                   play-minion-card!
                                                   end-turn!
                                                   attack!
+                                                  use-power!
                                                   use-spell!]]))
 
 (defn create-response
@@ -48,6 +49,11 @@
                 card-id (:card-id params)
                 target-id (:target-id params)]
             (create-response (use-spell! player-id card-id target-id)))
+
+          (= uri "/use-hero-power")
+          (let [player-id (:player-id params)
+                target-id (:target-id params)]
+            (create-response (use-power! player-id target-id)))
 
           (= uri "/engine-settings")
           {:status  200

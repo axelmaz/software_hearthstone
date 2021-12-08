@@ -8,15 +8,38 @@
                                          get-minions
                                          get-player
                                          get-players
+                                         get-power
                                          get-total-health
                                          create-minion
                                          create-card]]
             [firestone.core :refer [can-attack?
-                                    sleepy?]]
+                                    sleepy?
+                                    valid-power?]]
             [firestone.definitions :refer [get-definition]]
             [clojure.spec.alpha :as s]
             [ysera.test :refer [is is-not]]
             [firestone.client.kth.spec]))
+
+
+(defn power->client-power
+  {:test (fn []
+           (let [state (create-game)
+                 player (get-player state "p1")
+                 power (get-power state "p1")]
+             (is (s/valid? :firestone.client.kth.spec/hero-power (power->client-power state player power)))))}
+  [state player power]
+  {:can-use            (valid-power? state (:id player))
+   :owner-id           (:id player)
+   :entity-type        :hero-power
+   :has-used-your-turn (>= (:used-this-turn power) 1)
+   :name               (:name power)
+   :mana-cost          (get-in power [:mana-cost] (:mana-cost (get-definition (:name power))))
+   :original-mana-cost (:mana-cost (get-definition (:name power)))
+   :valid-target-ids   (let [function-valid-target (:valid-target (get-definition (:name power)))]
+                         (if (some? function-valid-target)
+                           (function-valid-target state (:id player))
+                           []))
+   :description        (:description (get-definition (:name power)))})
 
 (defn card-in-hand->client-card-in-hand
   {:test (fn []
@@ -106,6 +129,7 @@
    :can-attack       (or (:can-attack hero) false)
    :entity-type      :hero
    :health           (get-health hero)
+   :hero-power       (power->client-power state player (get-power state (:id player)))
    :id               (:id hero)
    :mana             (get-in state [:players (:id player) :mana])
    :max-health       (or (get-total-health hero) 30)
@@ -121,8 +145,7 @@
                  player (get-player state "p1")]
              (is (s/valid? :firestone.client.kth.spec/player (player->client-player state player)))))}
   [state player]
-  {;:board-entities (get-in player [:board-entities] [])
-   :board-entities (board-entities->client-board-entities state (get-in player [:board-entities] []))
+  {:board-entities (board-entities->client-board-entities state (get-in player [:board-entities] []))
    :active-secrets (get-in player [:active-secrets] [])
    :deck-size      (count (get-in player [:deck]))
    :hand           (->> (get-in player [:hand] [])

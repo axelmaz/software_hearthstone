@@ -3,13 +3,13 @@
                                          create-game
                                          create-hero
                                          create-minion
-
                                          get-player-id-in-turn]]
             [firestone.client.kth.mapper :refer [state->client-state]]
             [firestone.core-api :refer [end-turn
                                         play-minion-card
                                         attack-minion
-                                        play-spell-card]]
+                                        play-spell-card
+                                        use-hero-power]]
             [firestone.core :refer [update-armor]]))
 
 (defonce state-atom (atom nil))
@@ -62,3 +62,9 @@
    (time (response (state->client-state (swap! state-atom play-spell-card player-id card-id)))))
   ([player-id card-id target-id]
    (time (response (state->client-state (swap! state-atom play-spell-card player-id card-id target-id))))))
+
+(defn use-power!
+  ([player-id]
+   (time (response (state->client-state (swap! state-atom use-hero-power player-id)))))
+  ([player-id target-id]
+   (time (response (state->client-state (swap! state-atom use-hero-power player-id target-id))))))

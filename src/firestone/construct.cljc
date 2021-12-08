@@ -1034,6 +1034,7 @@
 (defn get-mana
   [state player-id]
   (get-in state [:players player-id :mana]))
+
 (defn enough-mana?
   {:test (fn []
            (is (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
@@ -1042,10 +1043,14 @@
            (is-not (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
                                       :mana 2}])
                        (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+           (is-not (-> (create-game [{:mana 1}])
+                       (enough-mana? "p1" (create-power "Fireblast" :id "f"))))
+           (is (-> (create-game [{:mana 2}])
+                   (enough-mana? "p1" (create-power "Fireblast"))))
 
            )}
-  [state player-id card]
-  (>= (get-mana state player-id) ((get-definition (card :name)) :mana-cost)))
+  [state player-id entity]
+  (>= (get-mana state player-id) (or (:mana-cost entity) ((get-definition (:name entity)) :mana-cost))))
 
 (defn decrease-mana
   {:test (fn []
@@ -1216,3 +1221,13 @@
         attack (:attack card)
         id (:id card)]
     (create-minion name :mana-cost mana-cost :health health :attack attack :id id)))
+
+(defn get-power
+  "Return the power of the player of the given id"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (get-power "p2")
+                    (:name))
+                "Fireblast"))}
+  [state player-id]
+  (get-in state [:players player-id :hero :power]))

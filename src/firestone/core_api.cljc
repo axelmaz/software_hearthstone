@@ -24,6 +24,7 @@
                                          get-opposing-player-id
                                          get-player-id-in-turn
                                          get-players
+                                         get-power
                                          listener-effect
                                          remove-card-from-hand
                                          update-minion]]
@@ -34,7 +35,8 @@
                                     start-turn-reset
                                     summon-minion
                                     use-battlecry
-                                    valid-attack?]]))
+                                    valid-attack?
+                                    valid-power?]]))
 
 (defn end-turn
   {:test (fn []
@@ -295,18 +297,15 @@
            ; Shouldn't be able to use the power if not enough mana
            (error? (-> (create-game [{:mana 1}])
                        (use-hero-power "p1")))
-           ; Shouldn't be able to use the power twice a tour TODO
-           ;
-           ;(error? (-> (create-game [{:hero "Garrosh Hellscream"
-           ;                           :mana 9}])
-           ;            (use-hero-power "p1")
-           ;            (use-hero-power "p1")))
+           ; Shouldn't be able to use the power twice a tour
+           (error? (-> (create-game)
+                       (use-hero-power "p1")
+                       (use-hero-power "p1")))
            ; The mana of the player should decrease by the mana cost of the card
-           (is= (-> (create-game [{:hero "Garrosh Hellscream"
-                                   :mana 9}])
+           (is= (-> (create-game [{:hero "Garrosh Hellscream"}])
                     (use-hero-power "p1")
                     (get-mana "p1"))
-                7)
+                8)
            ;The effect of the power is applied
            (is= (-> (create-game [{:hero "Garrosh Hellscream"}])
                     (use-hero-power "p1")
@@ -318,28 +317,17 @@
                     (get-health "h2"))
                 29)
            )}
-  ([state player-id]
-   (when-not (= (get-player-id-in-turn state) player-id)
-     (error "The player with id " player-id " is not in turn."))
-   (let [hero (get-character state (get-hero-id-from-player-id state player-id))
-         power ((get-definition (hero :name)) :hero-power)
-         mana-cost ((get-definition power) :mana-cost)
-         effect ((get-definition power) :states)]
-     (when-not (>= (get-mana state player-id) mana-cost)
-       (error "Not enough mana."))
-     (-> state
-         (decrease-mana player-id mana-cost)
-         (effect {})
-         )))
   ([state player-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)
      (error "The player with id " player-id " is not in turn."))
-   (let [hero (get-character state (get-hero-id-from-player-id state player-id))
-         power ((get-definition (hero :name)) :hero-power)
-         mana-cost ((get-definition power) :mana-cost)
-         effect ((get-definition power) :states)]
-     (when-not (>= (get-mana state player-id) mana-cost)
-       (error "Not enough mana."))
+   (let [power (get-power state player-id)
+         mana-cost (:mana-cost power)
+         effect (:states (get-definition (:name power)))]
+     (when-not (valid-power? state player-id)
+       (error "Not valid power."))
      (-> state
+         (update-in [:players player-id :hero :power :used-this-turn] inc)
          (decrease-mana player-id mana-cost)
-         (effect {:target-id target-id})))))
+         (effect {:target-id target-id}))))
+  ([state player-id]
+   (use-hero-power state player-id nil)))
