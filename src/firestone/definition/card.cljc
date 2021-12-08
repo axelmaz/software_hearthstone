@@ -30,23 +30,23 @@
 (def card-definitions
   {
    "Argent Protector"
-   {:description "Battlecry: Give a friendly minion Divine Shield."
-    :name        "Argent Protector"
-    :type        :minion
-    :mana-cost   2
-    :class       :paladin
-    :health      2
-    :set         :classic
-    :rarity      :common
-    :attack      2
-    :battlecry   (fn [state other-args]
-                   (let [played-card (:played-card other-args)
-                         target-minion-id (:target-id other-args)]
-                     (if-not (friendly? state (:id played-card) target-minion-id)
-                       (error "invalid target")
-                       (set-effect state target-minion-id :divine-shield))))
+   {:description  "Battlecry: Give a friendly minion Divine Shield."
+    :name         "Argent Protector"
+    :type         :minion
+    :mana-cost    2
+    :class        :paladin
+    :health       2
+    :set          :classic
+    :rarity       :common
+    :attack       2
+    :battlecry    (fn [state other-args]
+                    (let [played-card (:played-card other-args)
+                          target-minion-id (:target-id other-args)]
+                      (if-not (friendly? state (:id played-card) target-minion-id)
+                        (error "invalid target")
+                        (set-effect state target-minion-id :divine-shield))))
     :valid-target (fn [state card]
-                    (vec(map :id (get-minions state (:owner-id card)))))}
+                    (vec (map :id (get-minions state (:owner-id card)))))}
 
    "Argent Squire"
    {:attack      1
@@ -87,7 +87,7 @@
                     (let [target-minion-id (:target-id other-args)]
                       (give-minion-plus-attack-and-health state target-minion-id 1)))
     :valid-target (fn [state card]
-                    (vec(map :id (get-minions state))))}
+                    (vec (map :id (get-minions state))))}
 
    "Battle Rage"
    {:class        :warrior
@@ -457,7 +457,7 @@
     :type        :minion
     :deathrattle (fn [state other-args]
                    (let [owner-id (:owner-id (:minion-play-effect other-args))]
-                      (draw-card state owner-id)))}
+                     (draw-card state owner-id)))}
 
    })
 (add-definitions! card-definitions)

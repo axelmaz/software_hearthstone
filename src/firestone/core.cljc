@@ -11,6 +11,8 @@
                                          create-game
                                          create-hero
                                          create-minion
+                                         create-power
+                                         enough-mana?
                                          get-armor
                                          get-attack
                                          get-card-from-hand
@@ -27,6 +29,7 @@
                                          get-player-id-from-heroe-id
                                          get-player-id-in-turn
                                          get-players
+                                         get-power
                                          get-random-character
                                          get-taunt-minions-id
                                          get-total-health
@@ -827,4 +830,26 @@
   (-> state
       (assoc :minion-ids-summoned-this-turn [])
       (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
-      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)))
+      (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)
+      (assoc-in [:players (get-player-id-in-turn state) :hero :power :used-this-turn] 0)))
+
+
+(defn valid-power?
+  "Checks if the use-of the power is valid"
+  {:test (fn []
+           ; Should not be able to use your power if it is not your turn
+           (is-not (-> (create-game)
+                       (valid-power? "p2")))
+           ; Should not be able to use your power if have you already used your power this turn
+           (is-not (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :power (create-power "Fireblast" :used-this-turn 1))}])
+                       (valid-power? "p1")))
+           ; Should not be able to use your power if you don't have enough mana
+           (is-not (-> (create-game [{:mana 1}])
+                       (valid-power? "p1")))
+           ; Should in other cases
+           (is (-> (create-game [{:mana 2}])
+                   (valid-power? "p1"))))}
+  [state player-id]
+  (let [power (get-power state player-id)
+        max-number-use 1]
+    (and (enough-mana? state player-id power) (< (:used-this-turn power) max-number-use) (= player-id (get-player-id-in-turn state)))))

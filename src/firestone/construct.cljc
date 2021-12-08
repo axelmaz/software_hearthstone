@@ -926,13 +926,24 @@
                     (count))
                 2))}
   [state id]
-  (let [owner-id (:owner-id (get-minion state id))]
+  (let [minion (get-minion state id)
+        owner-id (:owner-id minion)
+        position (:position minion)]
     (-> state
         (listener-effect :deathrattle {:minion-play-effect get-minion state id})
-        (update-in
+        (update-in                                          ;remove the minion
           [:players owner-id :board-entities]
           (fn [minions]
-            (remove (fn [m] (= (:id m) id)) minions))))))
+            (remove (fn [m] (= (:id m) id)) minions)))
+        (update-in                                          ;replace the others to the good position
+          [:players owner-id :board-entities]
+          (fn [minions]
+            (->> minions
+                 (mapv (fn [m]
+                         (if (< (:position m) position)
+                           m
+                           (update m :position dec)))))
+            )))))
 
 
 (defn remove-minions
@@ -1034,6 +1045,7 @@
 (defn get-mana
   [state player-id]
   (get-in state [:players player-id :mana]))
+
 (defn enough-mana?
   {:test (fn []
            (is (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
@@ -1042,10 +1054,14 @@
            (is-not (-> (create-game [{:hand [(create-card "Nightblade" :id "d")]
                                       :mana 2}])
                        (enough-mana? "p1" (create-card "Nightblade" :id "d"))))
+           (is-not (-> (create-game [{:mana 1}])
+                       (enough-mana? "p1" (create-power "Fireblast" :id "f"))))
+           (is (-> (create-game [{:mana 2}])
+                   (enough-mana? "p1" (create-power "Fireblast"))))
 
            )}
-  [state player-id card]
-  (>= (get-mana state player-id) ((get-definition (card :name)) :mana-cost)))
+  [state player-id entity]
+  (>= (get-mana state player-id) (or (:mana-cost entity) ((get-definition (:name entity)) :mana-cost))))
 
 (defn decrease-mana
   {:test (fn []
@@ -1216,3 +1232,13 @@
         attack (:attack card)
         id (:id card)]
     (create-minion name :mana-cost mana-cost :health health :attack attack :id id)))
+
+(defn get-power
+  "Return the power of the player of the given id"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (get-power "p2")
+                    (:name))
+                "Fireblast"))}
+  [state player-id]
+  (get-in state [:players player-id :hero :power]))
