@@ -1205,6 +1205,38 @@
   [state player-id]
   (filter (fn [minion-id] (is-effect? state minion-id :taunt)) (map :id (get-minions state player-id))))
 
+(defn set-deck
+  "Return a state with the given deck for the given player"
+  {:test (fn []
+           (is= (-> (create-game)
+                    (set-deck "p1" [(create-card "Sunwalker" :id "n1")
+                                    (create-card "Sunwalker" :id "n2")
+                                    (create-card "Sunwalker" :id "n3")
+                                    (create-card "Sunwalker" :id "n4")])
+                    (get-deck "p1")
+                    (count))
+                4))}
+  [state player-id cards]
+  (assoc-in state [:players player-id :deck] cards))
+
+
+(defn shuffle-deck
+  "Return a state with a shuffle deck for the given player"
+  {:test (fn []
+           (is= (as-> (create-game [{:deck [(create-card "Sunwalker" :id "n1")
+                                            (create-card "Sunwalker" :id "n2")
+                                            (create-card "Sunwalker" :id "n3")
+                                            (create-card "Sunwalker" :id "n4")]}]) $
+                      (shuffle-deck $ "p1")
+                      (get-deck $ "p1")
+                      (map :id $))
+                ["n1" "n3" "n2" "n4"])
+           )}
+  [state player-id]
+  (let [old-deck (get-deck state player-id)
+        shuffled-deck ((shuffle-with-seed 0 old-deck) 1)]
+    (set-deck state player-id shuffled-deck)))
+
 (defn get-attackable-entities-id
   "Return a sequence of id corresponding to the minions and hero that the player could attack. "
   {:test (fn []
