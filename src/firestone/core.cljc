@@ -404,10 +404,10 @@
       (if (is-effect? state minion-id :divine-shield)
         (remove-effect state minion-id :divine-shield)
         (as-> state $
-            (listener-effect $ :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
-            (update-minion $ minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
-            (or (kill-if-dead $ minion-id)
-                (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker-id other-args))))))))
+              (listener-effect $ :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
+              (update-minion $ minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
+              (or (kill-if-dead $ minion-id)
+                  (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker-id other-args))))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"
@@ -634,16 +634,15 @@
                 [{:name "Nightblade"}])
            ; play the listener effect corresponding
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith")
-                                                    (create-card "Knife Juggler")]}])
-                    (summon-minion "p1" (create-minion "Nightblade" :id "n") 0)
+                                                    (create-minion "Knife Juggler" :owner-id "p1")]}])
+                    (summon-minion "p1" (create-card "Nightblade" :id "n") 0)
                     (get-health "h2"))
-                29)
-           )}
+                29))}
+
   [state player-id card position]
-  (let [minion (card-to-minion card)
-        minion-id (:id minion)]
+  (let [minion (card-to-minion card)]
     (-> state
-        (listener-effect :states-summon-minion)
+        (listener-effect :states-summon-minion {:player-summon player-id})
         (add-minion-to-board player-id minion position)
         (update
           :minion-ids-summoned-this-turn

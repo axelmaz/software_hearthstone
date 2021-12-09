@@ -164,9 +164,12 @@
     :set                  :classic
     :type                 :minion
     :states-summon-minion (fn [state other-args]
-                            (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                                  enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                              (damage-random state 1 enemy-id)))
+                            (let [owner-id-play-effect (:owner-id (:minion-play-effect other-args))
+                                  owner-id-summoned (:player-summon other-args)
+                                  enemy-id (get-opposing-player-id state owner-id-play-effect)]
+                              (if (= owner-id-play-effect owner-id-summoned)
+                                (damage-random state 1 enemy-id)
+                                state)))
     }
 
    "Lorewalker Cho"
@@ -459,7 +462,8 @@
     :set         :classic
     :type        :minion
     :deathrattle (fn [state other-args]
-                   (let [owner-id (:owner-id (:minion-play-effect other-args))]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)]
                      (draw-card state owner-id)))}
 
    })

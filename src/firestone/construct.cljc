@@ -837,6 +837,7 @@
   [state ids key function-or-value]
   (reduce (fn [s id] (update-minion s id key function-or-value)) state ids))
 
+
 (defn listener-effect
   "Apply the effect of the listener which correspond to the event of all the minions on the board which have one"
   {:test (fn []
@@ -893,7 +894,7 @@
                     (count))
                 3))}
   ([state event other-args]
-   (let [minions (get-minions state (get-player-id-in-turn state)) ;TODO deal with loot hoarder and kniffe juggler, should take all the minions and then handle it in the function
+   (let [minions (get-minions state)
          function-of-the-effect (fn [a minion]
                                   (let [function-result (event (get-definition (:name minion)))]
                                     (if (some? function-result)
@@ -902,6 +903,15 @@
      (reduce function-of-the-effect state minions)))
   ([state event]
    (listener-effect state event {})))
+
+(defn deathrattle
+  ([state minion]
+   (deathrattle state minion {}))
+  ([state minion target-id]
+   (let [deathrattle-function ((get-definition minion) :deathrattle)]
+     (if deathrattle-function
+       (deathrattle-function state {:minion-play-effect minion :target-id target-id})
+       state))))
 
 (defn remove-minion
   "Removes a minion with the given id from the state."
@@ -930,7 +940,7 @@
         owner-id (:owner-id minion)
         position (:position minion)]
     (-> state
-        (listener-effect :deathrattle {:minion-play-effect get-minion state id})
+        (deathrattle (get-minion state id))
         (update-in                                          ;remove the minion
           [:players owner-id :board-entities]
           (fn [minions]
