@@ -23,9 +23,7 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Defender" :id "d1")
-                                                      (create-minion "Malorne" :id "d2")
-                                                      (create-minion "Maexxna" :id "d3")]
+                                     :board-entities [(create-minion "Sylvanas Windrunner")]
                                      :hand           [(create-card "Deathwing")
                                                       (create-card "Loot Hoarder")
                                                       ]
@@ -38,10 +36,9 @@
                                                       (create-card "Defender")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities [(create-minion "Loot Hoarder" :id "d4" :owner-id "p2")
-                                                      (create-minion "Maexxna" :id "d5")
+                                     :board-entities [(create-minion "Maexxna" :id "d5")
                                                       (create-minion "Defender" :id "d6")]
-                                     :hand           [(create-card "Nightblade")
+                                     :hand           [(create-card "Sylvanas Windrunner")
                                                       (create-card "Defender")
                                                       (create-card "Argent Squire")
                                                       (create-card "King Mukla")]

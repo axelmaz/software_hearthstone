@@ -622,7 +622,25 @@
        p1-id))))
 
 
-
+(defn get-random-minion
+  "Returns a random character (of the given player or not)."
+  {:test (fn []
+           (is= (-> (create-game [{:hero (create-hero "Jaina Proudmoore" :id "h1")}])
+                    (get-random-minion "p1"))
+                nil)
+           (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n")
+                                                    (create-minion "Defender" :id "n2")]}])
+                    (get-random-minion "p1")
+                    (:name))
+                "Defender"))}
+  ([state player-targeted-id]
+   (let [minion-list (get-minions state player-targeted-id)
+         random-character ((random-nth 1 minion-list) 1)]
+     random-character))
+  ([state]
+   (let [minion-list (get-minions state)
+         random-character ((random-nth 1 minion-list) 1)]
+     random-character)))
 
 (defn get-random-character
   "Returns a random character (of the given player or not)."
@@ -1300,3 +1318,27 @@
                 "Fireblast"))}
   [state player-id]
   (get-in state [:players player-id :hero :power]))
+
+(defn swap-minion-of-player
+  "Swap the given minion from one player to another"
+  {:test (fn []
+           (is (empty? (-> (create-game [{:board-entities [(create-minion "Defender" :id "d")]}])
+                           (swap-minion-of-player "d")
+                           (get-minions "p1")
+                           )))
+           (is= (-> (create-game [{:board-entities [(create-minion "Defender" :id "d")]}])
+                    (swap-minion-of-player "d")
+                    (get-minions "p2")
+                    (count))
+                1))}
+[state minion-id]
+(let [old-minion (get-minion state minion-id)
+      old-owner-id (:owner-id old-minion)
+      new-owner-id (get-opposing-player-id state old-owner-id)
+      new-minion (assoc old-minion :owner-id new-owner-id)]
+  (-> state
+      (update-in [:players old-owner-id :board-entities] (fn [board-entitities]
+                                                           (remove (fn [entity]
+                                                                     (= (:id entity) minion-id)) board-entitities)))
+      (update-in [:players new-owner-id :board-entities] (fn [board-entitities]
+                                                           (conj board-entitities new-minion))))))

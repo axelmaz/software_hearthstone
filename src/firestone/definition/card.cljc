@@ -22,10 +22,12 @@
                                          get-opposing-player-id
                                          get-owner-id
                                          get-player-id-in-turn
+                                         get-random-minion
                                          remove-all-minions
                                          remove-all-cards-from-hand
                                          set-effect
                                          shuffle-deck
+                                         swap-minion-of-player
                                          update-minion]]))
 
 (def card-definitions
@@ -400,7 +402,14 @@
     :name        "Sylvanas Windrunner"
     :rarity      :legendary
     :set         :hall-of-fame
-    :type        :minion}
+    :type        :minion
+    :deathrattle (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)
+                         random-enemy-minion (get-random-minion state (get-opposing-player-id state owner-id))]
+                     (if (= random-enemy-minion nil)
+                       state
+                       (swap-minion-of-player state (:id random-enemy-minion)))))}
 
    "Noble Sacrifice"
    {:class       :paladin
