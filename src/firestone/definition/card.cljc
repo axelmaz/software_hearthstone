@@ -42,9 +42,11 @@
     :battlecry    (fn [state other-args]
                     (let [played-card (:played-card other-args)
                           target-minion-id (:target-id other-args)]
+                      (if (some? target-minion-id)
                       (if-not (friendly? state (:id played-card) target-minion-id)
                         (error "invalid target")
-                        (set-effect state target-minion-id :divine-shield))))
+                        (set-effect state target-minion-id :divine-shield))
+                      state)))
     :valid-target (fn [state card]
                     (vec (map :id (get-minions state (:owner-id card)))))}
 

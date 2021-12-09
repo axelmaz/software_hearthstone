@@ -46,7 +46,18 @@
            (let [state (create-game [{:hand           [(create-card "Nightblade" :id "n")]
                                       :board-entities [(create-minion "Nightblade" :id "n2")]}])
                  card (get-card-from-hand state "p1" "n")]
-             (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card)))))}
+             (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card))))
+           (let [state (create-game [{:hand           [(create-card "Argent Protector" :id "n")]
+                                      :board-entities [(create-minion "Nightblade" :id "n2")]}])
+                 card (get-card-from-hand state "p1" "n")]
+             (card-in-hand->client-card-in-hand state card))
+           (let [state (create-game [{:hand           [(create-card "Argent Protector" :id "n")]}])
+                 card (get-card-from-hand state "p1" "n")]
+             (card-in-hand->client-card-in-hand state card))
+           (let [state (create-game [{:hand           [(create-card "Whirlwind" :id "w")]}
+                                     {:board-entities [(create-minion "Defender")]}])
+                 card (get-card-from-hand state "p1" "w")]
+             (card-in-hand->client-card-in-hand state card)))}
   [state card]
   {:attack             (or (:attack card) 0)
    :description        (or (:description (get-definition (:name card))) " ")
