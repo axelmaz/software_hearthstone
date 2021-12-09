@@ -253,12 +253,14 @@
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
-  (let [value-attack-attack (or (get-attack state minion-attack-id) 0)]
-    (let [value-attack-defense (or (get-attack state minion-defense-id) 0)]
+  (let [minion-attack (get-minion state minion-attack-id)
+        minion-defense (get-minion state minion-defense-id)
+        value-attack-attack (or (get-attack state minion-attack-id) 0)
+        value-attack-defense (or (get-attack state minion-defense-id) 0)]
       (-> state
-          (deal-damages minion-defense-id value-attack-attack {:minion-attacker-id minion-attack-id})
+          (deal-damages minion-defense-id value-attack-attack {:minion-attacker minion-attack})
           (update-minion minion-attack-id :attacks-performed-this-turn 1)
-          (deal-damages minion-attack-id value-attack-defense {:minion-attacker-id minion-defense-id})))))
+          (deal-damages minion-attack-id value-attack-defense {:minion-attacker minion-defense}))))
 
 (defn attack-hero
   {:test

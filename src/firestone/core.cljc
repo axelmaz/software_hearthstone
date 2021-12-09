@@ -310,7 +310,7 @@
            ; Should remove a minion has been damaged by a poisonous minion
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
                                   {:board-entities [(create-minion "Maexxna" :id "m")]}])
-                    (kill-if-damaged-by-poisonous "n1" "m")
+                    (kill-if-damaged-by-poisonous "n1" (create-minion "Maexxna" :id "m"))
                     (get-minions "p1")
                     (count))
                 0)
@@ -327,8 +327,8 @@
                 (create-game [{:board-entities [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
                               {:board-entities [(create-minion "Defender" :id "m")]}]))
            )}
-  [state victim-id attacker-id]
-  (if (and (some? attacker-id) (is-effect? state attacker-id :poisonous))
+  [state victim-id attacker]
+  (if (and (some? attacker) (is-effect? attacker :poisonous))
     (remove-minion state victim-id)
     state))
 
@@ -382,7 +382,7 @@
            ; Is a minion damaged by a poisonous other deleted from the board ?
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}
                                   {:board-entities [(create-minion "Maexxna" :id "m")]}])
-                    (deal-damages-to-minion "n1" 1 {:minion-attacker-id "m"})
+                    (deal-damages-to-minion "n1" 1 {:minion-attacker (create-minion "Maexxna" :id "m")})
                     (get-minions "p1")
                     (count))
                 0)
@@ -407,7 +407,7 @@
               (listener-effect $ :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
               (update-minion $ minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
               (or (kill-if-dead $ minion-id)
-                  (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker-id other-args))))))))
+                  (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker other-args))))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"

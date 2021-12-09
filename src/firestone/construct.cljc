@@ -1134,8 +1134,10 @@
                     (remove-effect "n1" :divine-shield)
                     (is-effect? "n1" :divine-shield))
                 false))}
-  [state minion-id effect]
+  ([state minion-id effect]
   (boolean (some #{effect} (:states (get-minion state minion-id)))))
+  ([minion effect]
+   (boolean (some #{effect} (:states minion)))))
 
 (defn get-owner-id
   "give the id of the owner of the character"
