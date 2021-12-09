@@ -22,24 +22,74 @@
 (defn create-game!
   []
   (let [state (reset! state-atom
+                      ;sprint 1 and 2
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Nightblade" :id "n1" :sleepy false)]
                                      :hand           [(create-card "Argent Protector")
-                                                      (create-card "Defender")
-                                                      (create-card "Sunwalker")
-                                                      (create-card "Whirlwind")
+                                                      (create-card "Argent Squire")
+                                                      (create-card "Armorsmith")
+                                                      (create-card "Bananas")
+                                                      (create-card "Battle Rage")
+                                                      (create-card "Blessed Champion")
+                                                      (create-card "Earthen Ring Farseer")
                                                       (create-card "King Mukla")
-                                                      (create-card "Bananas")]
+                                                      (create-card "Knife Juggler")
+                                                      (create-card "Lorewalker Cho")
+                                                      (create-card "Novice Engineer")
+                                                      (create-card "Nightblade")
+                                                      (create-card "Ragnaros the Firelord")
+                                                      (create-card "Shield Slam")
+                                                      (create-card "Snake")
+                                                      (create-card "Whirlwind")]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
                                      :board-entities [(create-minion "Snake" :id "s2")]
                                      :hand           [(create-card "Nightblade")
+                                                      (create-card "Loot Hoarder")
                                                       (create-card "Defender")
+                                                      (create-card "Sunwalker")
                                                       (create-card "Argent Squire")
                                                       (create-card "King Mukla")]
-                                     :deck           [(create-card "Knife Juggler")]
+                                     :deck           [(create-card "Knife Juggler")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Argent Squire")]
+                                     :hero           (create-hero "Garrosh Hellscream" :health 25)}])
+
+                      ;sprint 3
+                      #_(create-game [{:mana           10
+                                     :hand           [(create-card "Blubber Baron")
+                                                      (create-card "Malorne")
+                                                      (create-card "Far Sight")
+                                                      (create-card "Abusive Sergeant")
+                                                      (create-card "Maexxna")
+                                                      (create-card "Explosive Trap")
+                                                      (create-card "Steward of Darkshire")
+                                                      (create-card "Doomsayer")
+                                                      (create-card "Nat Pagle")
+                                                      (create-card "Spellbreaker")
+                                                      (create-card "Deathwing")
+                                                      (create-card "Sylvanas Windrunner")
+                                                      (create-card "Noble Sacrifice")
+                                                      (create-card "Mountain Giant")
+                                                      (create-card "Mana Wraith")
+                                                      (create-card "Lowly Squire")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Loot Hoarder")]
+                                     :deck           [(create-card "Knife Juggler")
+                                                      (create-card "Nightblade")]
+                                     :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
+                                    {:mana           10
+                                     :board-entities [(create-minion "Snake" :id "s2")]
+                                     :hand           [(create-card "Nightblade")
+                                                      (create-card "Loot Hoarder")
+                                                      (create-card "Defender")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Argent Squire")
+                                                      (create-card "King Mukla")]
+                                     :deck           [(create-card "Knife Juggler")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Argent Squire")]
                                      :hero           (create-hero "Garrosh Hellscream" :health 25)}]))]
     (time (response (state->client-state state)))))
 
