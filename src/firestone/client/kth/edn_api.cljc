@@ -30,7 +30,12 @@
                                                       (create-card "Loot Hoarder")
                                                       ]
                                      :deck           [(create-card "Knife Juggler")
-                                                      (create-card "Nightblade")]
+                                                      (create-card "Nightblade")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
                                      :board-entities [(create-minion "Loot Hoarder" :id "d4" :owner-id "p2")
@@ -40,7 +45,13 @@
                                                       (create-card "Defender")
                                                       (create-card "Argent Squire")
                                                       (create-card "King Mukla")]
-                                     :deck           [(create-card "Knife Juggler")]
+                                     :deck           [(create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")]
                                      :hero           (create-hero "Garrosh Hellscream" :health 25)}]))]
     (time (response (state->client-state state)))))
 

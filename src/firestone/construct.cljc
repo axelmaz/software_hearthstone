@@ -905,6 +905,18 @@
    (listener-effect state event {})))
 
 (defn deathrattle
+  "Play the deathrattle of a minion that just die, if it has one"
+  {:test (fn []
+           ; Malorne deathrattle
+           (is= (as-> (create-game [{:board-entities [(create-minion "Malorne" :id "n")]
+                                     :deck           [(create-card "Nightblade" :id "n1")
+                                                      (create-card "Nightblade" :id "n2")
+                                                      (create-card "Nightblade" :id "n3")
+                                                      (create-card "Nightblade" :id "n4")]}]) $
+                      (deathrattle $ (get-minion $ "n"))
+                      (get-deck $ "p1")
+                      (map :name $))
+                ["Nightblade" "Nightblade" "Malorne" "Nightblade" "Nightblade"]))}
   ([state minion]
    (deathrattle state minion {}))
   ([state minion target-id]
@@ -1135,7 +1147,7 @@
                     (is-effect? "n1" :divine-shield))
                 false))}
   ([state minion-id effect]
-  (boolean (some #{effect} (:states (get-minion state minion-id)))))
+   (boolean (some #{effect} (:states (get-minion state minion-id)))))
   ([minion effect]
    (boolean (some #{effect} (:states minion)))))
 
@@ -1238,15 +1250,17 @@
            (is= (as-> (create-game [{:deck [(create-card "Sunwalker" :id "n1")
                                             (create-card "Sunwalker" :id "n2")
                                             (create-card "Sunwalker" :id "n3")
-                                            (create-card "Sunwalker" :id "n4")]}]) $
+                                            (create-card "Sunwalker" :id "n4")
+                                            (create-card "Sunwalker" :id "n5")
+                                            (create-card "Sunwalker" :id "n6")]}]) $
                       (shuffle-deck $ "p1")
                       (get-deck $ "p1")
                       (map :id $))
-                ["n1" "n3" "n2" "n4"])
+                ["n1" "n5" "n4" "n6" "n3" "n2"])
            )}
   [state player-id]
   (let [old-deck (get-deck state player-id)
-        shuffled-deck ((shuffle-with-seed 0 old-deck) 1)]
+        shuffled-deck ((shuffle-with-seed 12 old-deck) 1)]
     (set-deck state player-id shuffled-deck)))
 
 (defn get-attackable-entities-id
