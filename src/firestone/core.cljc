@@ -35,6 +35,7 @@
                                          get-total-health
                                          is-effect?
                                          listener-effect
+                                         listener-effect-in-hand
                                          remove-card-from-deck
                                          remove-effect
                                          remove-minion
@@ -71,7 +72,7 @@
         player-id (:owner-id minion)]
     (and (not (sleepy? state minion-id))
          (< (:attacks-performed-this-turn minion) number-attack-max)
-         (not (:states-cant-attack (get-definition minion)))
+         (not (is-effect? minion :cant-attack))
          (= (:player-id-in-turn state) player-id)
          )))
 
@@ -293,18 +294,16 @@
                     (get-minions "p1")
                     (count))
                 0)
-           ; Should remove a minion that has no life
+           ; Should return nil if a minion has no life
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}])
-                    (kill-if-dead "n1")
-                    (get-minions "p1")
-                    (count))
-                1)
+                    (kill-if-dead "n1"))
+                nil)
            )}
   [state id]
   (let [minion-health (get-health state id)]
     (if (<= minion-health 0)
       (remove-minion state id)
-      state)))
+      nil)))
 
 (defn kill-if-damaged-by-poisonous
   "If a minion has been damaged by a poisonous minion, should be removed of the state"
@@ -312,7 +311,7 @@
            ; Should remove a minion has been damaged by a poisonous minion
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
                                   {:board-entities [(create-minion "Maexxna" :id "m")]}])
-                    (kill-if-damaged-by-poisonous "n1" "m")
+                    (kill-if-damaged-by-poisonous "n1" (create-minion "Maexxna" :id "m"))
                     (get-minions "p1")
                     (count))
                 0)
@@ -329,8 +328,8 @@
                 (create-game [{:board-entities [(create-minion "Nightblade" :id "n1" :damage-taken 4)]}
                               {:board-entities [(create-minion "Defender" :id "m")]}]))
            )}
-  [state victim-id attacker-id]
-  (if (and (some? attacker-id) (is-effect? state attacker-id :poisonous))
+  [state victim-id attacker]
+  (if (and (some? attacker) (is-effect? attacker :poisonous))
     (remove-minion state victim-id)
     state))
 
@@ -384,7 +383,7 @@
            ; Is a minion damaged by a poisonous other deleted from the board ?
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}
                                   {:board-entities [(create-minion "Maexxna" :id "m")]}])
-                    (deal-damages-to-minion "n1" 1 {:minion-attacker-id "m"})
+                    (deal-damages-to-minion "n1" 1 {:minion-attacker (create-minion "Maexxna" :id "m")})
                     (get-minions "p1")
                     (count))
                 0)
@@ -405,11 +404,11 @@
       nil
       (if (is-effect? state minion-id :divine-shield)
         (remove-effect state minion-id :divine-shield)
-        (-> state
-            (listener-effect :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
-            (update-minion minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
-            (kill-if-dead minion-id)
-            (kill-if-damaged-by-poisonous minion-id (:minion-attacker-id other-args)))))))
+        (as-> state $
+              (listener-effect $ :states-minion-takes-damage {:minion-takes-damage (get-minion state minion-id)})
+              (update-minion $ minion-id :damage-taken (fn [damage-taken] (+ (or damage-taken 0) value-damages)))
+              (or (kill-if-dead $ minion-id)
+                  (kill-if-damaged-by-poisonous $ minion-id (:minion-attacker other-args))))))))
 
 (defn deal-damages-to-heroe-by-player-id
   "Deal the value of damage to the corresponding heroe given thanks to the player id"
@@ -634,23 +633,35 @@
                       (get-minions $ "p1")
                       (map (fn [m] {:name (:name m)}) $))
                 [{:name "Nightblade"}])
-           ; play the listener effect corresponding
+           ; play the listener effect corresponding : Knife Juggler give on damage to the hero enemy
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith")
-                                                    (create-card "Knife Juggler")]}])
-                    (summon-minion "p1" (create-minion "Nightblade" :id "n") 0)
+                                                    (create-minion "Knife Juggler" :owner-id "p1")]}])
+                    (summon-minion "p1" (create-card "Nightblade" :id "n") 0)
                     (get-health "h2"))
                 29)
-           )}
+           ; play the listener effect corresponding : Steward of Darkshire give a divine-shield to the 1-health minions
+           (is (-> (create-game [{:board-entities [(create-minion "Steward of Darkshire")]}])
+                   (summon-minion "p1" (create-card "Defender" :id "n") 0)
+                   (is-effect? "n" :divine-shield)))
+
+           ; play the listener effect in hand corresponding
+           (is= (-> (create-game [{:hand [(create-card "Blubber Baron" :id "b")]}])
+                    (summon-minion "p1" (create-card "Nightblade" :id "n" :owner-id "p1") 0)
+                    (get-card-from-hand "p1" "b")
+                    (get-attack))
+                2))}
+
   [state player-id card position]
-  (let [minion (card-to-minion card)
-        minion-id (:id minion)]
+  (let [minion (card-to-minion card)]
     (-> state
-        (listener-effect :states-summon-minion)
         (add-minion-to-board player-id minion position)
         (update
           :minion-ids-summoned-this-turn
           (fn [ids]
-            (conj ids (:id minion)))))))
+            (conj ids (:id minion))))
+        (listener-effect :states-summon-minion {:player-summon player-id :minion-summoned minion})
+        (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned card})
+        )))
 
 (defn cast-spell
   "Summon the given minion card to the board at the given position (and play the effect if there is one"

@@ -142,8 +142,9 @@
      (-> state
          (decrease-mana-with-card player-id card)
          (remove-card-from-hand player-id card-id)
+         (use-battlecry card target-id)
          (summon-minion player-id card position)
-         (use-battlecry card target-id)))))
+         ))))
 
 (defn play-spell-card
   {:test (fn []
@@ -239,25 +240,32 @@
                 0)
            ;When we attack the hero, it should loose health
            (is= (-> (create-game)
-                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                    (attack-minion "p1" "ne" "h2")
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "Ne") 0)
+                    (attack-minion "p1" "Ne" "h2")
                     (get-health "h2"))
                 29)
            ; Should not be possible to attack twice
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                        (attack-minion "p1" "ne" "h2")
-                       (attack-minion "p1" "ne" "h2")
-                       )))}
+                       (attack-minion "p1" "ne" "h2"))))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
-  (let [value-attack-attack (or (get-attack state minion-attack-id) 0)]
-    (let [value-attack-defense (or (get-attack state minion-defense-id) 0)]
-      (-> state
-          (deal-damages minion-defense-id value-attack-attack {:minion-attacker-id minion-attack-id})
-          (update-minion minion-attack-id :attacks-performed-this-turn 1)
-          (deal-damages minion-attack-id value-attack-defense {:minion-attacker-id minion-defense-id})))))
+  (let [minion-attack (get-character state minion-attack-id)
+        minion-defense (get-character state minion-defense-id)
+        minion-list (sort-by :added-to-board-time-id [minion-attack minion-defense])
+        other-minion-function {(:id minion-attack)  minion-defense
+                               (:id minion-defense) minion-attack}
+        deal-damage-to-minion (fn [state minion]
+                                (let [other-minion (other-minion-function (:id minion))
+                                      minion-attack (or (get-attack minion) 0)]
+                                  (deal-damages state (:id other-minion) minion-attack {:minion-attacker minion})))]
+    (as-> state $
+          (reduce deal-damage-to-minion $ minion-list)
+          (if (some? (get-minion $ minion-attack-id))
+            (update-minion $ minion-attack-id :attacks-performed-this-turn 1)
+            $))))
 
 (defn attack-hero
   {:test
@@ -316,6 +324,11 @@
                     (use-hero-power "p1" "h2")
                     (get-health "h2"))
                 29)
+           ;The inspire effect is applied ex Lowly Squire gain +1 attack
+           (is= (-> (create-game [{:board-entities [(create-minion "Lowly Squire" :id "l")]}])
+                    (use-hero-power "p1" "h2")
+                    (get-attack "l"))
+                2)
            )}
   ([state player-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)
@@ -327,6 +340,7 @@
        (error "Not valid power."))
      (-> state
          (update-in [:players player-id :hero :power :used-this-turn] inc)
+         (listener-effect :inspire {:power-owner-id player-id})
          (decrease-mana player-id mana-cost)
          (effect {:target-id target-id}))))
   ([state player-id]

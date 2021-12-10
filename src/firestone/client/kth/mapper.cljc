@@ -1,5 +1,7 @@
 (ns firestone.client.kth.mapper
-  (:require [firestone.construct :refer [create-game
+  (:require [firestone.construct :refer [create-card
+                                         create-game
+                                         create-minion
                                          enough-mana?
                                          get-attackable-entities-id
                                          get-card-from-hand
@@ -10,8 +12,7 @@
                                          get-players
                                          get-power
                                          get-total-health
-                                         create-minion
-                                         create-card]]
+                                         is-effect?]]
             [firestone.core :refer [can-attack?
                                     sleepy?
                                     valid-power?]]
@@ -99,7 +100,10 @@
    :position         (:position minion)
    :set              (:set (get-definition (:name minion)))
    :sleepy           (sleepy? state (:id minion))
-   :states           (get-in minion [:states] [])
+   :states           (let [states (get-in minion [:states] [])]
+                       (if (is-effect? minion :silenced)
+                         [:silenced]
+                         states))
    :valid-attack-ids (or (get-attackable-entities-id state (:owner-id minion)) [])})
 
 (defn permanent->client-permanent
