@@ -23,8 +23,8 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Sylvanas Windrunner")]
-                                     :hand           [(create-card "Deathwing")
+                                     :board-entities [(create-minion "Defender")]
+                                     :hand           [(create-card "Sylvanas Windrunner")
                                                       (create-card "Loot Hoarder")
                                                       ]
                                      :deck           [(create-card "Knife Juggler")
@@ -36,11 +36,10 @@
                                                       (create-card "Defender")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities [(create-minion "Maexxna" :id "d5")
-                                                      (create-minion "Defender" :id "d6")]
-                                     :hand           [(create-card "Sylvanas Windrunner")
+                                     :board-entities []
+                                     :hand           [(create-card "Nightblade")
                                                       (create-card "Defender")
-                                                      (create-card "Argent Squire")
+                                                      (create-card "Sylvanas Windrunner")
                                                       (create-card "King Mukla")]
                                      :deck           [(create-card "Defender")
                                                       (create-card "Defender")

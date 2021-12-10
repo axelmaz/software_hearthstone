@@ -396,7 +396,7 @@
 
    "Sylvanas Windrunner"
    {:attack      5
-    :description "Deathrattle: Take control of a random enemy minion."
+    :description "Deathrattle: Take control of a random enemy minion." ;
     :health      5
     :mana-cost   6
     :name        "Sylvanas Windrunner"

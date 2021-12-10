@@ -240,27 +240,32 @@
                 0)
            ;When we attack the hero, it should loose health
            (is= (-> (create-game)
-                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                    (attack-minion "p1" "ne" "h2")
+                    (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "Ne") 0)
+                    (attack-minion "p1" "Ne" "h2")
                     (get-health "h2"))
                 29)
            ; Should not be possible to attack twice
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                        (attack-minion "p1" "ne" "h2")
-                       (attack-minion "p1" "ne" "h2")
-                       )))}
+                       (attack-minion "p1" "ne" "h2"))))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
-  (let [minion-attack (get-minion state minion-attack-id)
-        minion-defense (get-minion state minion-defense-id)
-        value-attack-attack (or (get-attack state minion-attack-id) 0)
-        value-attack-defense (or (get-attack state minion-defense-id) 0)]
-      (-> state
-          (deal-damages minion-defense-id value-attack-attack {:minion-attacker minion-attack})
-          (update-minion minion-attack-id :attacks-performed-this-turn 1)
-          (deal-damages minion-attack-id value-attack-defense {:minion-attacker minion-defense}))))
+  (let [minion-attack (get-character state minion-attack-id)
+        minion-defense (get-character state minion-defense-id)
+        minion-list (sort-by :added-to-board-time-id [minion-attack minion-defense])
+        other-minion-function {(:id minion-attack)  minion-defense
+                               (:id minion-defense) minion-attack}
+        deal-damage-to-minion (fn [state minion]
+                                (let [other-minion (other-minion-function (:id minion))
+                                      minion-attack (or (get-attack minion) 0)]
+                                  (deal-damages state (:id other-minion) minion-attack {:minion-attacker minion})))]
+    (as-> state $
+          (reduce deal-damage-to-minion $ minion-list)
+          (if (some? (get-minion $ minion-attack-id))
+            (update-minion $ minion-attack-id :attacks-performed-this-turn 1)
+            $))))
 
 (defn attack-hero
   {:test
