@@ -23,9 +23,9 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Defender")]
-                                     :hand           [(create-card "Nightblade")
-                                                      (create-card "Blubber Baron")
+                                     :board-entities [(create-minion "Steward of Darkshire")]
+                                     :hand           [(create-card "Defender")
+                                                      (create-card "Defender")
                                                       ]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")

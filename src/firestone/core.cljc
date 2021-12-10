@@ -633,12 +633,17 @@
                       (get-minions $ "p1")
                       (map (fn [m] {:name (:name m)}) $))
                 [{:name "Nightblade"}])
-           ; play the listener effect corresponding
+           ; play the listener effect corresponding : Knife Juggler give on damage to the hero enemy
            (is= (-> (create-game [{:board-entities [(create-minion "Armorsmith")
                                                     (create-minion "Knife Juggler" :owner-id "p1")]}])
                     (summon-minion "p1" (create-card "Nightblade" :id "n") 0)
                     (get-health "h2"))
                 29)
+           ; play the listener effect corresponding : Steward of Darkshire give a divine-shield to the 1-health minions
+           (is (-> (create-game [{:board-entities [(create-minion "Steward of Darkshire")]}])
+                   (summon-minion "p1" (create-card "Defender" :id "n") 0)
+                   (is-effect? "n" :divine-shield)))
+
            ; play the listener effect in hand corresponding
            (is= (-> (create-game [{:hand [(create-card "Blubber Baron" :id "b")]}])
                     (summon-minion "p1" (create-card "Nightblade" :id "n" :owner-id "p1") 0)
@@ -649,13 +654,13 @@
   [state player-id card position]
   (let [minion (card-to-minion card)]
     (-> state
-        (listener-effect :states-summon-minion {:player-summon player-id})
-        (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned card})
         (add-minion-to-board player-id minion position)
         (update
           :minion-ids-summoned-this-turn
           (fn [ids]
             (conj ids (:id minion))))
+        (listener-effect :states-summon-minion {:player-summon player-id :minion-summoned minion})
+        (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned card})
         )))
 
 (defn cast-spell

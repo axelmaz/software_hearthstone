@@ -18,6 +18,7 @@
                                          get-armor
                                          get-attack
                                          get-character
+                                         get-health
                                          get-hero-id-from-player-id
                                          get-minions
                                          get-opposing-player-id
@@ -269,24 +270,24 @@
 
    ;;New Cards Sprint 3
    "Blubber Baron"
-   {:attack      1
-    :description "Whenever you summon a Battlecry minion while this is in your hand gain +1/+1."
-    :health      1
-    :mana-cost   3
-    :name        "Blubber Baron"
-    :rarity      :epic
-    :set         :mean-streets-of-gadgetzan
-    :type        :minion
+   {:attack                       1
+    :description                  "Whenever you summon a Battlecry minion while this is in your hand gain +1/+1."
+    :health                       1
+    :mana-cost                    3
+    :name                         "Blubber Baron"
+    :rarity                       :epic
+    :set                          :mean-streets-of-gadgetzan
+    :type                         :minion
     :states-summon-minion-in-hand (fn [state other-args]
                                     (let [minion-summoned (:card-minion-summoned other-args)
                                           card-play-effect (:card-play-effect other-args)
                                           minion-owner-id (:owner-id minion-summoned)
                                           card-owner-id (:owner-id card-play-effect)]
-                                    (if  (or (= nil (:battlecry (get-definition (:name minion-summoned)))) (not= minion-owner-id card-owner-id))
-                                      state
-                                      (-> state
-                                          (update-card minion-owner-id  (:id card-play-effect) :attack inc)
-                                          (update-card minion-owner-id  (:id card-play-effect) :health inc)))))}
+                                      (if (or (= nil (:battlecry (get-definition (:name minion-summoned)))) (not= minion-owner-id card-owner-id))
+                                        state
+                                        (-> state
+                                            (update-card minion-owner-id (:id card-play-effect) :attack inc)
+                                            (update-card minion-owner-id (:id card-play-effect) :health inc)))))}
 
    "Malorne"
    {:description "Deathrattle: Shuffle this minion into your deck."
@@ -345,15 +346,23 @@
     :type        :spell}
 
    "Steward of Darkshire"
-   {:description "Whenever you summon a 1-Health minion, give it Divine Shield."
-    :name        "Steward of Darkshire"
-    :type        :minion
-    :mana-cost   3
-    :class       :paladin
-    :health      3
-    :set         :whispers-of-the-old-gods
-    :rarity      :rare
-    :attack      3}
+   {:description          "Whenever you summon a 1-Health minion, give it Divine Shield."
+    :name                 "Steward of Darkshire"
+    :type                 :minion
+    :mana-cost            3
+    :class                :paladin
+    :health               3
+    :set                  :whispers-of-the-old-gods
+    :rarity               :rare
+    :attack               3
+    :states-summon-minion (fn [state other-args]
+                            (let [minion-summoned (:minion-summoned other-args)
+                                  minion-summoned-health (get-health minion-summoned)
+                                  minion-summoned-owner-id (:player-summon other-args)
+                                  minion-play-effect (:minion-play-effect other-args)]
+                              (if (and (= 1 minion-summoned-health) (= minion-summoned-owner-id (:owner-id minion-play-effect)))
+                                (set-effect state (:id minion-summoned) :divine-shield)
+                                state)))}
 
    "Doomsayer"
    {:attack            0
