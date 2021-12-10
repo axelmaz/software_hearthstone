@@ -31,7 +31,8 @@
                                          shuffle-deck
                                          swap-minion-of-player
                                          update-card
-                                         update-minion]]))
+                                         update-minion]]
+            [ysera.random :refer [get-random-int]]))
 
 (def card-definitions
   {
@@ -381,14 +382,21 @@
                              state)))}
 
    "Nat Pagle"
-   {:attack      0
-    :description "At the start of your turn, you have a 50% chance to draw an extra card."
-    :health      4
-    :mana-cost   2
-    :name        "Nat Pagle"
-    :rarity      :legendary
-    :set         :classic
-    :type        :minion}
+   {:attack            0
+    :description       "At the start of your turn, you have a 50% chance to draw an extra card."
+    :health            4
+    :mana-cost         2
+    :name              "Nat Pagle"
+    :rarity            :legendary
+    :set               :classic
+    :type              :minion
+    :states-start-turn (fn [state other-args]
+                         (let [player-id-in-turn (get-player-id-in-turn state)
+                               owner-id (:owner-id (:minion-play-effect other-args))]
+                           (if (and (= player-id-in-turn owner-id) (= ((get-random-int (:counter state) 2) 1) 0))
+                             (draw-card state player-id-in-turn)
+                             state)))}
+
 
    "Spellbreaker"
    {:attack      4
