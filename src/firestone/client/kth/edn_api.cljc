@@ -23,9 +23,11 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Nat Pagle")]
-                                     :hand           [(create-card "Defender")
-                                                      (create-card "Defender")
+                                     :board-entities []
+                                     :hand           [(create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
                                                       ]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")
@@ -36,7 +38,10 @@
                                                       (create-card "Defender")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities []
+                                     :board-entities [(create-minion "Sunwalker")
+                                                      (create-minion "Ragnaros the Firelord")
+                                                      (create-minion "Lowly Squire")
+                                                      (create-minion "Maexxna")]
                                      :hand           [(create-card "Nightblade")
                                                       (create-card "Defender")
                                                       (create-card "Sylvanas Windrunner")

@@ -856,7 +856,51 @@
   [state ids key function-or-value]
   (reduce (fn [s id] (update-minion s id key function-or-value)) state ids))
 
+(defn set-effect
+  {:test (fn []
+           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                    (set-effect "n1" :divine-shield)
+                    (get-minion "n1")
+                    (:states)
+                    (first))
+                :divine-shield))}
+  [state minion-id effect]
+  (update-minion state minion-id :states (fn [eff] (conj eff effect))))
 
+(defn remove-effect
+  {:test (fn []
+           (empty? (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                       (set-effect "n1" :divine-shield)
+                       (remove-effect "n1" :divine-shield)
+                       (get-minion "n1")
+                       (:states))))}
+  [state minion-id effect]
+  (update-minion state minion-id :states (fn [list_eff] (remove (fn [eff] (= eff effect)) list_eff))))
+
+(defn is-effect?
+  "True if the minion has the corresponding effect"
+  {:test (fn []
+           (is (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                   (set-effect "n1" :divine-shield)
+                   (is-effect? "n1" :divine-shield)))
+           (is-not (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                       (is-effect? "n1" :divine-shield)))
+           ;Should not if silenced
+           (is-not (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                       (set-effect "n1" :divine-shield)
+                       (set-effect "n1" :silenced)
+                       (is-effect? "n1" :divine-shield)))
+           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
+                    (set-effect "n1" :divine-shield)
+                    (remove-effect "n1" :divine-shield)
+                    (is-effect? "n1" :divine-shield))
+                false))}
+  ([state minion-id effect]
+   (and (or (= effect :silenced) (not (is-effect? state minion-id :silenced)))
+        (boolean (some #{effect} (:states (get-minion state minion-id))))))
+  ([minion effect]
+   (and (or (= effect :silenced) (not (is-effect? minion :silenced)))
+        (boolean (some #{effect} (:states minion))))))
 
 
 (defn deathrattle
@@ -871,12 +915,23 @@
                       (deathrattle $ (get-minion $ "n"))
                       (get-deck $ "p1")
                       (map :name $))
-                ["Nightblade" "Nightblade" "Malorne" "Nightblade" "Nightblade"]))}
+                ["Nightblade" "Nightblade" "Malorne" "Nightblade" "Nightblade"])
+           ;Not working if silenced
+           (is= (as-> (create-game [{:board-entities [(create-minion "Malorne" :id "n")]
+                                     :deck           [(create-card "Nightblade" :id "n1")
+                                                      (create-card "Nightblade" :id "n2")
+                                                      (create-card "Nightblade" :id "n3")
+                                                      (create-card "Nightblade" :id "n4")]}]) $
+                      (set-effect $ "n" :silenced)
+                      (deathrattle $ (get-minion $ "n"))
+                      (get-deck $ "p1")
+                      (map :name $))
+                ["Nightblade" "Nightblade" "Nightblade" "Nightblade"]))}
   ([state minion]
    (deathrattle state minion {}))
   ([state minion target-id]
    (let [deathrattle-function ((get-definition minion) :deathrattle)]
-     (if deathrattle-function
+     (if (and deathrattle-function (not (is-effect? minion :silenced)))
        (deathrattle-function state {:minion-play-effect minion :target-id target-id})
        state))))
 
@@ -1065,47 +1120,6 @@
   [state player-id card]
   (-> state (decrease-mana player-id ((get-definition (card :name)) :mana-cost))))
 
-(defn set-effect
-  {:test (fn []
-           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                    (set-effect "n1" :divine-shield)
-                    (get-minion "n1")
-                    (:states)
-                    (first))
-                :divine-shield))}
-  [state minion-id effect]
-  (update-minion state minion-id :states (fn [eff] (conj eff effect))))
-
-(defn remove-effect
-  {:test (fn []
-           (empty? (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                       (set-effect "n1" :divine-shield)
-                       (remove-effect "n1" :divine-shield)
-                       (get-minion "n1")
-                       (:states))))}
-  [state minion-id effect]
-  (update-minion state minion-id :states (fn [list_eff] (remove (fn [eff] (= eff effect)) list_eff))))
-
-(defn is-effect?
-  "True if the minion has the corresponding effect"
-  {:test (fn []
-           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                    (set-effect "n1" :divine-shield)
-                    (is-effect? "n1" :divine-shield))
-                true)
-           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                    (is-effect? "n1" :divine-shield))
-                false)
-           (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n1")]}])
-                    (set-effect "n1" :divine-shield)
-                    (remove-effect "n1" :divine-shield)
-                    (is-effect? "n1" :divine-shield))
-                false))}
-  ([state minion-id effect]
-   (boolean (some #{effect} (:states (get-minion state minion-id)))))
-  ([minion effect]
-   (boolean (some #{effect} (:states minion)))))
-
 (defn get-owner-id
   "give the id of the owner of the character"
   {:test (fn []
@@ -1284,7 +1298,7 @@
   "Apply the effect of the listener which correspond to the event of all the minions on the board which have one"
   {:test (fn []
            ; The end-turn effect of Ragnaros the Firelord is to deal 8 damages to a random enemy.
-           (is= (-> (create-game [{:board-entities [(create-card "Ragnaros the Firelord")]}])
+           (is= (-> (create-game [{:board-entities [(create-minion "Ragnaros the Firelord")]}])
                     (listener-effect :states-end-turn)
                     (get-health "h2"))
                 22)
@@ -1334,12 +1348,21 @@
                     (listener-effect :states-start-turn)
                     (get-minions)
                     (count))
+                3)
+           ;Test silenced
+           (is= (-> (create-game [{:board-entities [(create-minion "Defender")
+                                                    (create-minion "Doomsayer" :id "d")]}
+                                  {:board-entities [(create-minion "Defender")]}])
+                    (set-effect "d" :silenced)
+                    (listener-effect :states-start-turn)
+                    (get-minions)
+                    (count))
                 3))}
   ([state event other-args]
    (let [minions (get-minions state)
          function-of-the-effect (fn [a minion]
                                   (let [function-result (event (get-definition (:name minion)))]
-                                    (if (some? function-result)
+                                    (if (and (some? function-result) (not (is-effect? minion :silenced)))
                                       (function-result a (assoc other-args :minion-play-effect minion))
                                       a)))]
      (reduce function-of-the-effect state minions)))

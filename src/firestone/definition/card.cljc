@@ -76,6 +76,7 @@
     :set                        :classic
     :rarity                     :rare
     :attack                     1
+    :states                     [:effect]
     :states-minion-takes-damage (fn [state other-args]
                                   (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                         minion-takes-damage-id (:id (:minion-takes-damage other-args))]
@@ -169,6 +170,7 @@
     :rarity               :rare
     :set                  :classic
     :type                 :minion
+    :states               [:effect]
     :states-summon-minion (fn [state other-args]
                             (let [owner-id-play-effect (:owner-id (:minion-play-effect other-args))
                                   owner-id-summoned (:player-summon other-args)
@@ -187,6 +189,7 @@
     :rarity            :legendary
     :set               :classic
     :type              :minion
+    :states            [:effect]
     :states-cast-spell (fn [state rest]
                          (let [card-spell-casted (:card-spell-casted rest)
                                owner-id (:owner-id card-spell-casted)
@@ -217,19 +220,19 @@
                    (deal-damages state (get-opposing-player-id state) 3 {}))}
 
    "Ragnaros the Firelord"
-   {:attack             8
-    :description        "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
-    :health             8
-    :mana-cost          8
-    :name               "Ragnaros the Firelord"
-    :rarity             :legendary
-    :set                :hall-of-fame
-    :type               :minion
-    :states-cant-attack true
-    :states-end-turn    (fn [state other-args]
-                          (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                                enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                            (damage-random state 8 enemy-id)))}
+   {:attack          8
+    :description     "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
+    :health          8
+    :mana-cost       8
+    :name            "Ragnaros the Firelord"
+    :rarity          :legendary
+    :set             :hall-of-fame
+    :type            :minion
+    :states          [:cant-attack :effect]
+    :states-end-turn (fn [state other-args]
+                       (let [minion-play-effect-id (:id (:minion-play-effect other-args))
+                             enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
+                         (damage-random state 8 enemy-id)))}
 
    "Shield Slam"
    {:class        :warrior
@@ -356,6 +359,7 @@
     :set                  :whispers-of-the-old-gods
     :rarity               :rare
     :attack               3
+    :states               [:effect]
     :states-summon-minion (fn [state other-args]
                             (let [minion-summoned (:minion-summoned other-args)
                                   minion-summoned-health (get-health minion-summoned)
@@ -374,6 +378,7 @@
     :rarity            :epic
     :set               :classic
     :type              :minion
+    :states            [:effect]
     :states-start-turn (fn [state other-args]
                          (let [player-id-in-turn (get-player-id-in-turn state)
                                owner-id (:owner-id (:minion-play-effect other-args))]
@@ -390,6 +395,7 @@
     :rarity            :legendary
     :set               :classic
     :type              :minion
+    :states            [:effect]
     :states-start-turn (fn [state other-args]
                          (let [player-id-in-turn (get-player-id-in-turn state)
                                owner-id (:owner-id (:minion-play-effect other-args))]
@@ -399,14 +405,19 @@
 
 
    "Spellbreaker"
-   {:attack      4
-    :description "Battlecry: Silence a minion."
-    :health      3
-    :mana-cost   4
-    :name        "Spellbreaker"
-    :rarity      :common
-    :set         :classic
-    :type        :minion}
+   {:attack       4
+    :description  "Battlecry: Silence a minion."
+    :health       3
+    :mana-cost    4
+    :name         "Spellbreaker"
+    :rarity       :common
+    :set          :classic
+    :type         :minion
+    :battlecry    (fn [state other-args]
+                    (let [target-minion-id (:target-id other-args)]
+                      (set-effect state target-minion-id :silenced)))
+    :valid-target (fn [state card]
+                    (vec (map :id (get-minions state))))}
 
    "Deathwing"
    {:attack      12
@@ -478,6 +489,7 @@
     :rarity      :common
     :set         :the-grand-tournament
     :type        :minion
+    :states      [:inspire]
     :inspire     (fn [state other-args]
                    (let [minion-play-effect (:minion-play-effect other-args)
                          power-owner-id (:power-owner-id other-args)]

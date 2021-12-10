@@ -72,7 +72,7 @@
         player-id (:owner-id minion)]
     (and (not (sleepy? state minion-id))
          (< (:attacks-performed-this-turn minion) number-attack-max)
-         (not (:states-cant-attack (get-definition minion)))
+         (not (is-effect? minion :cant-attack))
          (= (:player-id-in-turn state) player-id)
          )))
 
