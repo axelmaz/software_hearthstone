@@ -35,6 +35,7 @@
                                          get-total-health
                                          is-effect?
                                          listener-effect
+                                         listener-effect-in-hand
                                          remove-card-from-deck
                                          remove-effect
                                          remove-minion
@@ -637,17 +638,25 @@
                                                     (create-minion "Knife Juggler" :owner-id "p1")]}])
                     (summon-minion "p1" (create-card "Nightblade" :id "n") 0)
                     (get-health "h2"))
-                29))}
+                29)
+           ; play the listener effect in hand corresponding
+           (is= (-> (create-game [{:hand [(create-card "Blubber Baron" :id "b")]}])
+                    (summon-minion "p1" (create-card "Nightblade" :id "n" :owner-id "p1") 0)
+                    (get-card-from-hand "p1" "b")
+                    (get-attack))
+                2))}
 
   [state player-id card position]
   (let [minion (card-to-minion card)]
     (-> state
         (listener-effect :states-summon-minion {:player-summon player-id})
+        (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned card})
         (add-minion-to-board player-id minion position)
         (update
           :minion-ids-summoned-this-turn
           (fn [ids]
-            (conj ids (:id minion)))))))
+            (conj ids (:id minion))))
+        )))
 
 (defn cast-spell
   "Summon the given minion card to the board at the given position (and play the effect if there is one"

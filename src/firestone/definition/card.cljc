@@ -1,6 +1,7 @@
 (ns firestone.definition.card
   (:require [ysera.error :refer [error]]
-            [firestone.definitions :refer [add-definitions!]]
+            [firestone.definitions :refer [add-definitions!
+                                           get-definition]]
             [firestone.core :refer [damage-random
                                     deal-damages
                                     draw-card
@@ -28,6 +29,7 @@
                                          set-effect
                                          shuffle-deck
                                          swap-minion-of-player
+                                         update-card
                                          update-minion]]))
 
 (def card-definitions
@@ -274,7 +276,17 @@
     :name        "Blubber Baron"
     :rarity      :epic
     :set         :mean-streets-of-gadgetzan
-    :type        :minion}
+    :type        :minion
+    :states-summon-minion-in-hand (fn [state other-args]
+                                    (let [minion-summoned (:card-minion-summoned other-args)
+                                          card-play-effect (:card-play-effect other-args)
+                                          minion-owner-id (:owner-id minion-summoned)
+                                          card-owner-id (:owner-id card-play-effect)]
+                                    (if  (or (= nil (:battlecry (get-definition (:name minion-summoned)))) (not= minion-owner-id card-owner-id))
+                                      state
+                                      (-> state
+                                          (update-card minion-owner-id  (:id card-play-effect) :attack inc)
+                                          (update-card minion-owner-id  (:id card-play-effect) :health inc)))))}
 
    "Malorne"
    {:description "Deathrattle: Shuffle this minion into your deck."

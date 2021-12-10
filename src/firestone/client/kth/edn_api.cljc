@@ -24,12 +24,12 @@
   (let [state (reset! state-atom
                       (create-game [{:mana           10
                                      :board-entities [(create-minion "Defender")]
-                                     :hand           [(create-card "Sylvanas Windrunner")
-                                                      (create-card "Loot Hoarder")
+                                     :hand           [(create-card "Nightblade")
+                                                      (create-card "Blubber Baron")
                                                       ]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")
-                                                      (create-card "Defender")
+                                                      (create-card "Novice Engineer")
                                                       (create-card "Defender")
                                                       (create-card "Defender")
                                                       (create-card "Defender")
