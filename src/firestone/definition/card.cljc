@@ -1,6 +1,7 @@
 (ns firestone.definition.card
   (:require [ysera.error :refer [error]]
-            [firestone.definitions :refer [add-definitions!]]
+            [firestone.definitions :refer [add-definitions!
+                                           get-definition]]
             [firestone.core :refer [damage-random
                                     deal-damages
                                     draw-card
@@ -17,15 +18,21 @@
                                          get-armor
                                          get-attack
                                          get-character
+                                         get-health
                                          get-hero-id-from-player-id
                                          get-minions
                                          get-opposing-player-id
                                          get-owner-id
                                          get-player-id-in-turn
+                                         get-random-minion
                                          remove-all-minions
                                          remove-all-cards-from-hand
                                          set-effect
-                                         update-minion]]))
+                                         shuffle-deck
+                                         swap-minion-of-player
+                                         update-card
+                                         update-minion]]
+            [ysera.random :refer [get-random-int]]))
 
 (def card-definitions
   {
@@ -69,6 +76,7 @@
     :set                        :classic
     :rarity                     :rare
     :attack                     1
+    :states                     [:effect]
     :states-minion-takes-damage (fn [state other-args]
                                   (let [minion-play-effect-id (:id (:minion-play-effect other-args))
                                         minion-takes-damage-id (:id (:minion-takes-damage other-args))]
@@ -162,10 +170,14 @@
     :rarity               :rare
     :set                  :classic
     :type                 :minion
+    :states               [:effect]
     :states-summon-minion (fn [state other-args]
-                            (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                                  enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                              (damage-random state 1 enemy-id)))
+                            (let [owner-id-play-effect (:owner-id (:minion-play-effect other-args))
+                                  owner-id-summoned (:player-summon other-args)
+                                  enemy-id (get-opposing-player-id state owner-id-play-effect)]
+                              (if (= owner-id-play-effect owner-id-summoned)
+                                (damage-random state 1 enemy-id)
+                                state)))
     }
 
    "Lorewalker Cho"
@@ -177,6 +189,7 @@
     :rarity            :legendary
     :set               :classic
     :type              :minion
+    :states            [:effect]
     :states-cast-spell (fn [state rest]
                          (let [card-spell-casted (:card-spell-casted rest)
                                owner-id (:owner-id card-spell-casted)
@@ -207,19 +220,19 @@
                    (deal-damages state (get-opposing-player-id state) 3 {}))}
 
    "Ragnaros the Firelord"
-   {:attack             8
-    :description        "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
-    :health             8
-    :mana-cost          8
-    :name               "Ragnaros the Firelord"
-    :rarity             :legendary
-    :set                :hall-of-fame
-    :type               :minion
-    :states-cant-attack true
-    :states-end-turn    (fn [state other-args]
-                          (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                                enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                            (damage-random state 8 enemy-id)))}
+   {:attack          8
+    :description     "Can't attack. At the end of your turn, deal 8 damage to a random enemy."
+    :health          8
+    :mana-cost       8
+    :name            "Ragnaros the Firelord"
+    :rarity          :legendary
+    :set             :hall-of-fame
+    :type            :minion
+    :states          [:cant-attack :effect]
+    :states-end-turn (fn [state other-args]
+                       (let [minion-play-effect-id (:id (:minion-play-effect other-args))
+                             enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
+                         (damage-random state 8 enemy-id)))}
 
    "Shield Slam"
    {:class        :warrior
@@ -261,14 +274,24 @@
 
    ;;New Cards Sprint 3
    "Blubber Baron"
-   {:attack      1
-    :description "Whenever you summon a Battlecry minion while this is in your hand gain +1/+1."
-    :health      1
-    :mana-cost   3
-    :name        "Blubber Baron"
-    :rarity      :epic
-    :set         :mean-streets-of-gadgetzan
-    :type        :minion}
+   {:attack                       1
+    :description                  "Whenever you summon a Battlecry minion while this is in your hand gain +1/+1."
+    :health                       1
+    :mana-cost                    3
+    :name                         "Blubber Baron"
+    :rarity                       :epic
+    :set                          :mean-streets-of-gadgetzan
+    :type                         :minion
+    :states-summon-minion-in-hand (fn [state other-args]
+                                    (let [minion-summoned (:card-minion-summoned other-args)
+                                          card-play-effect (:card-play-effect other-args)
+                                          minion-owner-id (:owner-id minion-summoned)
+                                          card-owner-id (:owner-id card-play-effect)]
+                                      (if (or (= nil (:battlecry (get-definition (:name minion-summoned)))) (not= minion-owner-id card-owner-id))
+                                        state
+                                        (-> state
+                                            (update-card minion-owner-id (:id card-play-effect) :attack inc)
+                                            (update-card minion-owner-id (:id card-play-effect) :health inc)))))}
 
    "Malorne"
    {:description "Deathrattle: Shuffle this minion into your deck."
@@ -283,7 +306,9 @@
     :deathrattle (fn [state other-args]
                    (let [minion-play-effect (:minion-play-effect other-args)
                          owner-id (:owner-id minion-play-effect)]
-                     (add-card-to-deck state owner-id (:name minion-play-effect))))} ;TODO shuffle the deck after.
+                     (-> state
+                         (add-card-to-deck owner-id (:name minion-play-effect))
+                         (shuffle-deck owner-id))))}
 
    "Far Sight"
    {:class       :shaman
@@ -325,15 +350,24 @@
     :type        :spell}
 
    "Steward of Darkshire"
-   {:description "Whenever you summon a 1-Health minion, give it Divine Shield."
-    :name        "Steward of Darkshire"
-    :type        :minion
-    :mana-cost   3
-    :class       :paladin
-    :health      3
-    :set         :whispers-of-the-old-gods
-    :rarity      :rare
-    :attack      3}
+   {:description          "Whenever you summon a 1-Health minion, give it Divine Shield."
+    :name                 "Steward of Darkshire"
+    :type                 :minion
+    :mana-cost            3
+    :class                :paladin
+    :health               3
+    :set                  :whispers-of-the-old-gods
+    :rarity               :rare
+    :attack               3
+    :states               [:effect]
+    :states-summon-minion (fn [state other-args]
+                            (let [minion-summoned (:minion-summoned other-args)
+                                  minion-summoned-health (get-health minion-summoned)
+                                  minion-summoned-owner-id (:player-summon other-args)
+                                  minion-play-effect (:minion-play-effect other-args)]
+                              (if (and (= 1 minion-summoned-health) (= minion-summoned-owner-id (:owner-id minion-play-effect)))
+                                (set-effect state (:id minion-summoned) :divine-shield)
+                                state)))}
 
    "Doomsayer"
    {:attack            0
@@ -344,6 +378,7 @@
     :rarity            :epic
     :set               :classic
     :type              :minion
+    :states            [:effect]
     :states-start-turn (fn [state other-args]
                          (let [player-id-in-turn (get-player-id-in-turn state)
                                owner-id (:owner-id (:minion-play-effect other-args))]
@@ -352,24 +387,37 @@
                              state)))}
 
    "Nat Pagle"
-   {:attack      0
-    :description "At the start of your turn, you have a 50% chance to draw an extra card."
-    :health      4
-    :mana-cost   2
-    :name        "Nat Pagle"
-    :rarity      :legendary
-    :set         :classic
-    :type        :minion}
+   {:attack            0
+    :description       "At the start of your turn, you have a 50% chance to draw an extra card."
+    :health            4
+    :mana-cost         2
+    :name              "Nat Pagle"
+    :rarity            :legendary
+    :set               :classic
+    :type              :minion
+    :states            [:effect]
+    :states-start-turn (fn [state other-args]
+                         (let [player-id-in-turn (get-player-id-in-turn state)
+                               owner-id (:owner-id (:minion-play-effect other-args))]
+                           (if (and (= player-id-in-turn owner-id) (= ((get-random-int (:counter state) 2) 1) 0))
+                             (draw-card state player-id-in-turn)
+                             state)))}
+
 
    "Spellbreaker"
-   {:attack      4
-    :description "Battlecry: Silence a minion."
-    :health      3
-    :mana-cost   4
-    :name        "Spellbreaker"
-    :rarity      :common
-    :set         :classic
-    :type        :minion}
+   {:attack       4
+    :description  "Battlecry: Silence a minion."
+    :health       3
+    :mana-cost    4
+    :name         "Spellbreaker"
+    :rarity       :common
+    :set          :classic
+    :type         :minion
+    :battlecry    (fn [state other-args]
+                    (let [target-minion-id (:target-id other-args)]
+                      (set-effect state target-minion-id :silenced)))
+    :valid-target (fn [state card]
+                    (vec (map :id (get-minions state))))}
 
    "Deathwing"
    {:attack      12
@@ -388,13 +436,20 @@
 
    "Sylvanas Windrunner"
    {:attack      5
-    :description "Deathrattle: Take control of a random enemy minion."
+    :description "Deathrattle: Take control of a random enemy minion." ;
     :health      5
     :mana-cost   6
     :name        "Sylvanas Windrunner"
     :rarity      :legendary
     :set         :hall-of-fame
-    :type        :minion}
+    :type        :minion
+    :deathrattle (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)
+                         random-enemy-minion (get-random-minion state (get-opposing-player-id state owner-id))]
+                     (if (= random-enemy-minion nil)
+                       state
+                       (swap-minion-of-player state (:id random-enemy-minion)))))}
 
    "Noble Sacrifice"
    {:class       :paladin
@@ -433,7 +488,14 @@
     :name        "Lowly Squire"
     :rarity      :common
     :set         :the-grand-tournament
-    :type        :minion}
+    :type        :minion
+    :states      [:inspire]
+    :inspire     (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         power-owner-id (:power-owner-id other-args)]
+                     (if (= power-owner-id (:owner-id minion-play-effect))
+                       (update-minion state (:id minion-play-effect) :attack inc)
+                       state)))}
 
    "Sunwalker"
    {:attack      4
@@ -456,7 +518,8 @@
     :set         :classic
     :type        :minion
     :deathrattle (fn [state other-args]
-                   (let [owner-id (:owner-id (:minion-play-effect other-args))]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         owner-id (:owner-id minion-play-effect)]
                      (draw-card state owner-id)))}
 
    })

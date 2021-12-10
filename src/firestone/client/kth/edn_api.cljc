@@ -23,23 +23,36 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Nightblade" :id "n1" :sleepy false)]
-                                     :hand           [(create-card "Argent Protector")
-                                                      (create-card "Defender")
-                                                      (create-card "Sunwalker")
-                                                      (create-card "Whirlwind")
-                                                      (create-card "King Mukla")
-                                                      (create-card "Bananas")]
+                                     :board-entities []
+                                     :hand           [(create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
+                                                      (create-card "Spellbreaker")
+                                                      ]
                                      :deck           [(create-card "Knife Juggler")
-                                                      (create-card "Nightblade")]
+                                                      (create-card "Nightblade")
+                                                      (create-card "Novice Engineer")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities [(create-minion "Snake" :id "s2")]
+                                     :board-entities [(create-minion "Sunwalker")
+                                                      (create-minion "Ragnaros the Firelord")
+                                                      (create-minion "Lowly Squire")
+                                                      (create-minion "Maexxna")]
                                      :hand           [(create-card "Nightblade")
                                                       (create-card "Defender")
-                                                      (create-card "Argent Squire")
+                                                      (create-card "Sylvanas Windrunner")
                                                       (create-card "King Mukla")]
-                                     :deck           [(create-card "Knife Juggler")]
+                                     :deck           [(create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")
+                                                      (create-card "Defender")]
                                      :hero           (create-hero "Garrosh Hellscream" :health 25)}]))]
     (time (response (state->client-state state)))))
 
