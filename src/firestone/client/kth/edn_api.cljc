@@ -23,7 +23,7 @@
   []
   (let [state (reset! state-atom
                       (create-game [{:mana           10
-                                     :board-entities [(create-minion "Steward of Darkshire")]
+                                     :board-entities [(create-minion "Lowly Squire")]
                                      :hand           [(create-card "Defender")
                                                       (create-card "Defender")
                                                       ]

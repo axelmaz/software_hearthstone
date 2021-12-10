@@ -469,7 +469,13 @@
     :name        "Lowly Squire"
     :rarity      :common
     :set         :the-grand-tournament
-    :type        :minion}
+    :type        :minion
+    :inspire     (fn [state other-args]
+                   (let [minion-play-effect (:minion-play-effect other-args)
+                         power-owner-id (:power-owner-id other-args)]
+                     (if (= power-owner-id (:owner-id minion-play-effect))
+                       (update-minion state (:id minion-play-effect) :attack inc)
+                       state)))}
 
    "Sunwalker"
    {:attack      4

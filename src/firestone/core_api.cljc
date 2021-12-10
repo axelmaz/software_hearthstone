@@ -324,6 +324,11 @@
                     (use-hero-power "p1" "h2")
                     (get-health "h2"))
                 29)
+           ;The inspire effect is applied ex Lowly Squire gain +1 attack
+           (is= (-> (create-game [{:board-entities [(create-minion "Lowly Squire" :id "l")]}])
+                    (use-hero-power "p1" "h2")
+                    (get-attack "l"))
+                2)
            )}
   ([state player-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)
@@ -335,6 +340,7 @@
        (error "Not valid power."))
      (-> state
          (update-in [:players player-id :hero :power :used-this-turn] inc)
+         (listener-effect :inspire {:power-owner-id player-id})
          (decrease-mana player-id mana-cost)
          (effect {:target-id target-id}))))
   ([state player-id]
