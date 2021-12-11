@@ -336,7 +336,17 @@
     :name        "Abusive Sergeant"
     :rarity      :common
     :set         :classic
-    :type        :minion}
+    :type        :minion
+    :battlecry    (fn [state other-args]
+                    (let [played-card (:played-card other-args)
+                          target-minion-id (:target-id other-args)]
+                      (if (some? target-minion-id)
+                        (if-not (friendly-when-not-on-board? state (:owner-id played-card) target-minion-id)
+                          (error "invalid target")
+                          (update-attack state target-minion-id 2))
+                        state)))
+    :valid-target (fn [state card]
+                    (vec (map :id (get-minions state))))}
 
    "Maexxna"
    {:attack      2
