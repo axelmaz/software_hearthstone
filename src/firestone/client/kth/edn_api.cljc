@@ -62,7 +62,7 @@
                                                       (create-card "Mana Wraith")
                                                       (create-card "Lowly Squire")
                                                       (create-card "Sunwalker")
-                                                      (create-card "Loot Hoarder")]
+                                                      (create-card "Mountain Giant")]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
