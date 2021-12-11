@@ -1429,7 +1429,12 @@
                     (update-card "p1" "n" :attack inc)
                     (get-card-from-hand "p1" "n")
                     (:attack))
-                5))}
+                5)
+           (is= (-> (create-game [{:hand [(create-card "Nightblade" :id "n")]}])
+                    (update-card "p1" "n" :mana-cost inc)
+                    (get-card-from-hand "p1" "n")
+                    (:mana-cost))
+                6))}
   [state owner-id id key function-or-value]
   (let [card (get-card-from-hand state owner-id id)]
     (replace-card-in-hand state owner-id (if (fn? function-or-value)

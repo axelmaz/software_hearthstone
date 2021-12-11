@@ -23,7 +23,7 @@
   []
   (let [state (reset! state-atom
                       ;sprint 1 and 2
-                      (create-game [{:mana           10
+                      #_(create-game [{:mana           10
                                      :hand           [(create-card "Argent Protector")
                                                       (create-card "Argent Squire")
                                                       (create-card "Armorsmith")
@@ -57,7 +57,7 @@
                                      :hero           (create-hero "Garrosh Hellscream" :health 25)}])
 
                       ;sprint 3
-                      #_(create-game [{:mana           10
+                      (create-game [{:mana           10
                                      :hand           [(create-card "Blubber Baron")
                                                       (create-card "Malorne")
                                                       (create-card "Far Sight")
