@@ -19,6 +19,7 @@
                                          get-armor
                                          get-attack
                                          get-character
+                                         get-deck
                                          get-health
                                          get-hero-id-from-player-id
                                          get-minions
@@ -326,7 +327,18 @@
     :name        "Far Sight"
     :rarity      :epic
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :states-spell (fn [state other-args]
+                    (let [player-id-in-turn (get-player-id-in-turn state)
+                          card (nth (get-deck state player-id-in-turn) 0)
+                          card-id (:id card)
+                          card-mana (:mana-cost card)]
+                      (as-> state $
+                      (draw-card $ player-id-in-turn)
+                      (update-card $ player-id-in-turn card-id :mana-cost
+                                     (if (< card-mana 3)
+                                       0
+                                       (- card-mana 3))))))}
 
    "Abusive Sergeant"
    {:attack      1
