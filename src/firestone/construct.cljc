@@ -1118,7 +1118,7 @@
            )
    }
   [state player-id card]
-  (-> state (decrease-mana player-id ((get-definition (card :name)) :mana-cost))))
+  (-> state (decrease-mana player-id (card :mana-cost))))
 
 (defn get-owner-id
   "give the id of the owner of the character"
