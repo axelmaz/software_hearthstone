@@ -1093,7 +1093,14 @@
 
            )}
   [state player-id entity]
-  (>= (get-mana state player-id) (or (:mana-cost entity) ((get-definition (:name entity)) :mana-cost))))
+  (let [amount-of-mana-wraiths-on-board (reduce (fn [counter player]
+                                                  (+ counter (count
+                                                               (filter (fn [x]
+                                                                         (= (:name x) "Mana Wraith"))
+                                                                       (get-in state [:players player :board-entities])))))
+                                                0
+                                                ["p1" "p2"])]
+    (>= (get-mana state player-id) (or (+ (:mana-cost entity) amount-of-mana-wraiths-on-board) (+ ((get-definition (:name entity)) :mana-cost) amount-of-mana-wraiths-on-board) ))))
 
 (defn decrease-mana
   {:test (fn []
@@ -1118,7 +1125,14 @@
            )
    }
   [state player-id card]
-  (-> state (decrease-mana player-id (card :mana-cost))))
+  (let [amount-of-mana-wraiths-on-board (reduce (fn [counter player]
+                                                   (+ counter (count
+                                                                (filter (fn [x]
+                                                                          (= (:name x) "Mana Wraith"))
+                                                                        (get-in state [:players player :board-entities])))))
+                                                 0
+                                                 ["p1" "p2"])]
+  (-> state (decrease-mana player-id (+ (card :mana-cost) amount-of-mana-wraiths-on-board)))))
 
 (defn get-owner-id
   "give the id of the owner of the character"

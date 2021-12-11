@@ -82,7 +82,15 @@
    :health             (or (:health card) 0)
    :id                 (:id card)
    :name               (:name card)
-   :mana-cost          (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))
+   :mana-cost          (let [amount-of-mana-wraiths-on-board (reduce (fn [counter player]
+                                                                  (+ counter (count
+                                                                               (filter (fn [x]
+                                                                                         (= (:name x) "Mana Wraith"))
+                                                                                       (get-in state [:players player :board-entities])))))
+                                                                0
+                                                                ["p1" "p2"])
+                             mana (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))]
+                         (+ mana amount-of-mana-wraiths-on-board))
    :original-attack    (or (:attack (get-definition (:name card))) 0)
    :original-health    (or (:health (get-definition (:name card))) 0)
    :original-mana-cost (:mana-cost (get-definition (:name card)))
