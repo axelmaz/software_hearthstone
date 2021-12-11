@@ -80,6 +80,7 @@ However, when starting a new REPL, you must load the definitions before being ab
    - give-minion-plus-one [state player-id minion-name minion-id pos] TODO : useless minion-name + maybe create a + attack, +health functions, and 1 as argument
    - draw-for-each-damaged [state player-id] ;TODO : create draw-cards, with how many
    - draw-specific-card [state player-id card amount] ;TODO : that's add to hand and not draw
+   - friendly-when-not-on-board? ;Used when the minion being placed on the board needs to target a friendly minion that is on the board. In this case, we cannot          check in the state for the newly added card since it is yet to be added on the board there. 
 
 
 
