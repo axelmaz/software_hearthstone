@@ -1183,6 +1183,15 @@
         owner2 (get-owner-id state id2)]
     (= owner1 owner2)))
 
+(defn friendly-when-not-on-board?
+  "True if the two characters are friendly if one is yet to be on the board "
+  {:test (fn []
+           (is (-> (create-game)
+                   (friendly? "p1" "h1"))))}
+  [state owner1 id2]
+  (let [owner2 (get-owner-id state id2)]
+    (= owner1 owner2)))
+
 
 (defn get-taunt-minions-id
   "Return a sequence of id corresponding to the minions of the player that have taunt. "

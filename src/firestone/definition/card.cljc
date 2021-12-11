@@ -14,6 +14,7 @@
                                          add-card-to-deck
                                          add-specific-cards-to-hand
                                          create-card
+                                         friendly-when-not-on-board?
                                          friendly?
                                          get-armor
                                          get-attack
@@ -50,7 +51,7 @@
                     (let [played-card (:played-card other-args)
                           target-minion-id (:target-id other-args)]
                       (if (some? target-minion-id)
-                      (if-not (friendly? state (:id played-card) target-minion-id)
+                      (if-not (friendly-when-not-on-board? state (:owner-id played-card) target-minion-id)
                         (error "invalid target")
                         (set-effect state target-minion-id :divine-shield))
                       state)))
@@ -124,7 +125,9 @@
                     (let [target-minion-id (:target-id other-args)
                           attack (get-attack state target-minion-id)]
                       (-> state
-                          (update-attack target-minion-id attack))))}
+                          (update-attack target-minion-id attack))))
+    :valid-target (fn [state card]
+                    (vec (map :id (get-minions state))))}
 
    "Defender"
    {:name      "Defender"
@@ -147,7 +150,9 @@
     :type        :minion
     :battlecry   (fn [state other-args]
                    (let [target-id (:target-id other-args)]
-                     (restore-health state target-id 3)))}
+                     (restore-health state target-id 3)))
+   :valid-target (fn [state card]
+                   (conj (vec (map :id (get-minions state))) (get-hero-id-from-player-id state "p1") (get-hero-id-from-player-id state "p2")))}
 
    "King Mukla"
    {:attack      5
@@ -249,7 +254,9 @@
                           target-minion-id (:target-id other-args)
                           owner-id (get-in card [:owner-id])
                           number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
-                      (deal-damages state target-minion-id number-armor {})))}
+                      (deal-damages state target-minion-id number-armor {})))
+   :valid-target (fn [state card]
+                   (vec (map :id (get-minions state))))}
 
    "Snake"
    {:name      "Snake"

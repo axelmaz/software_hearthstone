@@ -18,7 +18,7 @@
                                     valid-power?]]
             [firestone.definitions :refer [get-definition]]
             [clojure.spec.alpha :as s]
-            [ysera.test :refer [is is-not]]
+            [ysera.test :refer [is is-not is=]]
             [firestone.client.kth.spec]))
 
 
@@ -41,6 +41,22 @@
                            (function-valid-target state (:id player))
                            []))
    :description        (:description (get-definition (:name power)))})
+
+(defn get-valid-targets-from-card
+  {:test (fn []
+           (let [state (create-game [{:hand           [(create-card "Bananas" :id "b")]
+                                      :board-entities [(create-minion "Nightblade" :id "n2")]}])]
+             (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "b")) ["n2"]))
+           (let [state (create-game [{:hand           [(create-card "Bananas" :id "b")]}])]
+             (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "b")) []))
+           (let [state (create-game [{:hand           [(create-card "Earthen Ring Farseer" :id "e")]}])]
+             (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "e")) ["h1" "h2"]))
+           )}
+  [state card]
+  (let [function-valid-target (:valid-target (get-definition (:name card)))]
+    (if (some? function-valid-target)
+      (function-valid-target state card)
+      [])))
 
 (defn card-in-hand->client-card-in-hand
   {:test (fn []
@@ -71,11 +87,12 @@
    :original-health    (or (:health (get-definition (:name card))) 0)
    :original-mana-cost (:mana-cost (get-definition (:name card)))
    :owner-id           (:owner-id card)
-   :playable           (enough-mana? state (:owner-id card) card)
-   :valid-target-ids   (let [function-valid-target (:valid-target (get-definition (:name card)))]
-                         (if (some? function-valid-target)
-                           (function-valid-target state card)
-                           []))
+   :playable           (if (= (:type card) :minion)
+                         (enough-mana? state (:owner-id card) card)
+                         (if (contains? (get-definition (:name card)) :valid-target)
+                           (and (enough-mana? state (:owner-id card) card) (not (empty? (get-valid-targets-from-card state card))))
+                           (enough-mana? state (:owner-id card) card)))
+   :valid-target-ids   (get-valid-targets-from-card state card)
    :type               (get-in card [:type])})
 
 
