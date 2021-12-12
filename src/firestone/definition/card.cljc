@@ -245,9 +245,12 @@
     :type            :minion
     :states          [:cant-attack :effect]
     :states-end-turn (fn [state other-args]
-                       (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                             enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                         (damage-random state 8 enemy-id)))}
+                       (let [minion-play-effect (:minion-play-effect other-args)
+                             minion-owner-id (:owner-id minion-play-effect)
+                             enemy-id (get-opposing-player-id state minion-owner-id)]
+                         (if (= minion-owner-id (get-player-id-in-turn state))
+                           (damage-random state 8 enemy-id)
+                           state)))}
 
    "Shield Slam"
    {:class        :warrior
@@ -379,26 +382,26 @@
     :states      [:poisonous]}
 
    "Explosive Trap"
-   {:class        :hunter
-    :description  "Secret: When your hero is attacked deal 2 damage to all enemies."
-    :mana-cost    2
-    :name         "Explosive Trap"
-    :rarity       :common
-    :set          :classic
-    :type         :spell
-    :states-spell (fn [state other-args]
-                    (let [card (:spell-played other-args)
-                          player-id (:owner-id card)]
-                      (add-secret state player-id (create-secret (:name card)))))
+   {:class         :hunter
+    :description   "Secret: When your hero is attacked deal 2 damage to all enemies."
+    :mana-cost     2
+    :name          "Explosive Trap"
+    :rarity        :common
+    :set           :classic
+    :type          :spell
+    :states-spell  (fn [state other-args]
+                     (let [card (:spell-played other-args)
+                           player-id (:owner-id card)]
+                       (add-secret state player-id (create-secret (:name card)))))
     :secret-attack (fn [state other-args]
-                    (let [card (:secret-played other-args)
-                          attacked-character (:attacked-character other-args)
-                          secret-owner-id (:owner-id card)
-                          attacked-owner-id (or (:owner-id attacked-character) (get-owner-id state (:id attacked-character)))]
-                      (if (and (= :hero (:entity-type attacked-character)) (= secret-owner-id attacked-owner-id))
-                        (-> (reduce (fn [s minion] (deal-damages s (:id minion) 2 {})) state (get-minions state (get-opposing-player-id state secret-owner-id)))
-                            (deal-damages (get-opposing-player-id state secret-owner-id) 2 {}))
-                        state)))}
+                     (let [card (:secret-played other-args)
+                           attacked-character (:attacked-character other-args)
+                           secret-owner-id (:owner-id card)
+                           attacked-owner-id (or (:owner-id attacked-character) (get-owner-id state (:id attacked-character)))]
+                       (if (and (= :hero (:entity-type attacked-character)) (= secret-owner-id attacked-owner-id))
+                         (-> (reduce (fn [s minion] (deal-damages s (:id minion) 2 {})) state (get-minions state (get-opposing-player-id state secret-owner-id)))
+                             (deal-damages (get-opposing-player-id state secret-owner-id) 2 {}))
+                         state)))}
 
    "Steward of Darkshire"
    {:description          "Whenever you summon a 1-Health minion, give it Divine Shield."
@@ -503,17 +506,17 @@
                        (swap-minion-of-player state (:id random-enemy-minion)))))}
 
    "Noble Sacrifice"
-   {:class       :paladin
-    :description "Secret: When an enemy attacks summon a 2/1 Defender as the new target."
-    :mana-cost   1
-    :name        "Noble Sacrifice"
-    :rarity      :common
-    :set         :classic
-    :type        :spell
-    :states-spell (fn [state other-args]
-                    (let [card (:spell-played other-args)
-                          player-id (:owner-id card)]
-                      (add-secret state player-id (create-secret (:name card)))))
+   {:class         :paladin
+    :description   "Secret: When an enemy attacks summon a 2/1 Defender as the new target."
+    :mana-cost     1
+    :name          "Noble Sacrifice"
+    :rarity        :common
+    :set           :classic
+    :type          :spell
+    :states-spell  (fn [state other-args]
+                     (let [card (:spell-played other-args)
+                           player-id (:owner-id card)]
+                       (add-secret state player-id (create-secret (:name card)))))
     :secret-attack (fn [state other-args]
                      (let [card (:secret-played other-args)
                            attacked-character (:attacked-character other-args)

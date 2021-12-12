@@ -57,14 +57,15 @@
                                      :hero           (create-hero "Garrosh Hellscream" :health 25)}])
                       ; Create secrets
                       (create-game [{:mana           10
-                                     :hand           [(create-card "Explosive Trap")
+                                     :board-entities []
+                                     :hand           [(create-card "Ragnaros the Firelord")
+                                                      (create-card "Explosive Trap")
                                                       (create-card "Noble Sacrifice")]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
                                     {:mana           10
-                                     :board-entities [(create-minion "Argent Squire")
-                                                      (create-minion "Defender")]
+                                     :board-entities [(create-minion "Defender")]
                                      :hand           [(create-card "Nightblade")
                                                       (create-card "Loot Hoarder")
                                                       (create-card "Defender")
