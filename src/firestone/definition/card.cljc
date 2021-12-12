@@ -8,6 +8,7 @@
                                     draw-for-each-damaged
                                     give-minion-plus-attack-and-health
                                     restore-health
+                                    summon-minion
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
@@ -35,6 +36,7 @@
                                          shuffle-deck
                                          swap-minion-of-player
                                          update-card
+                                         update-id-character
                                          update-minion]]
             [ysera.random :refer [get-random-int]]))
 
@@ -504,7 +506,22 @@
     :name        "Noble Sacrifice"
     :rarity      :common
     :set         :classic
-    :type        :spell}
+    :type        :spell
+    :states-spell (fn [state other-args]
+                    (let [card (:spell-played other-args)
+                          player-id (:owner-id card)]
+                      (add-secret state player-id (create-secret (:name card)))))
+    :secret-attack (fn [state other-args]
+                     (let [card (:secret-played other-args)
+                           attacked-character (:attacked-character other-args)
+                           attacked-character-id (:id attacked-character)
+                           secret-owner-id (:owner-id card)
+                           attacked-owner-id (or (:owner-id attacked-character) (get-owner-id state (:id attacked-character)))]
+                       (if-not (= secret-owner-id attacked-owner-id)
+                         state
+                         (-> state
+                             (update-id-character attacked-character-id)
+                             (summon-minion secret-owner-id (create-card "Defender" :id attacked-character-id) (inc (count (get-minions state secret-owner-id))))))))}
 
    "Mountain Giant"
    {:attack      8

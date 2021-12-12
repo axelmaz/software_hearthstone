@@ -1536,3 +1536,31 @@
   [state player-id secret-id]
   (update-in state [:players player-id :active-secrets]
              (fn [active-secrets] (remove (fn [act-secret] (= secret-id (:id act-secret))) active-secrets))))
+
+(defn update-id-character
+  "Return a state with a new id for the given character"
+  {:test (fn []
+           (is= (-> (create-game [{:board-entities [(create-card "Defender" :id "d")]}])
+                    (update-id-character "d")
+                    (get-minions "p1")
+                    (first)
+                    (:id))
+                "m2")
+           (is= (-> (create-game)
+                    (update-id-character "h1")
+                    (get-heroes)
+                    (first)
+                    (:id))
+                "m1"))}
+  [state character-id]
+  (let [[state new-id] (generate-id state)
+        new-id (str "m" new-id)
+        character (get-character state character-id)]
+    (if (= (:entity-type character) :hero)
+      (assoc-in state [:players (get-player-id-from-heroe-id state character-id) :hero :id] new-id)
+      (update-in state [:players (:owner-id character) :board-entities]
+                 (fn [board-entities] (map
+                                        (fn [board-entity]
+                                          (if (= (:id board-entity) character-id)
+                                            (assoc board-entity :id new-id)
+                                            board-entity)) board-entities))))))
