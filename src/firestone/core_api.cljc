@@ -183,8 +183,8 @@
                                (:id minion-defense) minion-attack}
         deal-damage-to-minion (fn [state minion]
                                 (let [other-minion (other-minion-function (:id minion))
-                                      minion-attack (or (get-attack minion) 0)]
-                                  (deal-damages state (:id other-minion) minion-attack {:minion-attacker minion})))]
+                                      minion-attack-value (or (get-attack state minion) 0)]
+                                  (deal-damages state (:id other-minion) minion-attack-value {:minion-attacker minion})))]
     (if (nil? (and minion-attack minion-defense))
       state
       (as-> state $

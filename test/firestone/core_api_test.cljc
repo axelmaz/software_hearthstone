@@ -74,7 +74,7 @@
                     (get-hand "p1")
                     (first)
                     (:name))
-                "Nightblade"))}[])
+                "Nightblade"))} [])
 
 (defn test-play-spell-card
   {:test (fn []
@@ -94,7 +94,7 @@
                                    :mana 9}])
                     (play-spell-card "p1" "d")
                     (get-mana "p1"))
-                7))}[])
+                7))} [])
 
 (defn test-play-attack-minion
   {:test (fn []
@@ -126,7 +126,7 @@
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
                        (attack-minion "p1" "ne" "h2")
-                       (attack-minion "p1" "ne" "h2"))))}[])
+                       (attack-minion "p1" "ne" "h2"))))} [])
 
 (defn test-use-hero-power
   {:test (fn []
@@ -149,4 +149,4 @@
            (is= (-> (create-game [{:board-entities [(create-minion "Lowly Squire" :id "l")]}])
                     (use-hero-power "p1" "h2")
                     (get-attack "l"))
-                2))}[])
+                2))} [])

@@ -363,7 +363,11 @@
                     (let [played-card (:played-card other-args)
                           target-minion-id (:target-id other-args)]
                       (if (some? target-minion-id)
-                        (update-attack state target-minion-id 2)
+                        (if (get state :temporary-modification)
+                          (update state :temporary-modification conj {:id    target-minion-id
+                                                                      :value 2})
+                          (assoc state :temporary-modification [{:id    target-minion-id
+                                                                 :value 2}]))
                         state)))
     :valid-target (fn [state card]
                     (vec (map :id (get-minions state))))}

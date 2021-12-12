@@ -607,6 +607,7 @@
                        (sleepy? "n1"))))}
   [state]
   (-> state
+      (assoc :temporary-modification [])
       (assoc :minion-ids-summoned-this-turn [])
       (assoc-in [:players (get-player-id-in-turn state) :mana] 10)
       (update-minions (map :id (get-minions state (get-player-id-in-turn state))) :attacks-performed-this-turn 0)

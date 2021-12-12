@@ -749,12 +749,19 @@
            (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n" :attack 45)]}])
                     (get-attack "n"))
                 45))}
-  ([character]
-   (let [definition (get-definition (:name character))]
-     (or (:attack character) (:attack definition))))
-  ([state id]
-   (let [character (get-character state id)]
-     (get-attack character))))
+  [state character-or-id]
+  (let [character (if (string? character-or-id)
+                    (get-character state character-or-id)
+                    character-or-id)
+        definition (get-definition (:name character))
+        temporary-modification-list (:temporary-modification state)
+        modification (reduce (fn [total-modif modif]
+                               (let [temporary-modification-id (:id modif)
+                                     temporary-modification-value (:value modif)]
+                                 (if (= (:id character) temporary-modification-id)
+                                   (+ total-modif temporary-modification-value)
+                                   total-modif))) 0 temporary-modification-list)]
+    (+ (or (:attack character) (:attack definition) 0) modification)))
 
 (defn replace-minion
   "Replaces a minion with the same id as the given new-minion."
@@ -1235,7 +1242,7 @@
   (let [old-minion (get-minion state minion-id)
         old-owner-id (:owner-id old-minion)
         new-owner-id (get-opposing-player-id state old-owner-id)
-        new-minion (assoc old-minion :owner-id new-owner-id)]
+        new-minion (assoc (assoc old-minion :owner-id new-owner-id) :position (count (get-minions state new-owner-id)))]
     (-> state
         (update-in [:players old-owner-id :board-entities] (fn [board-entitities]
                                                              (remove (fn [entity]
@@ -1275,7 +1282,7 @@
            (is= (-> (create-game [{:hand [(create-card "Blubber Baron" :id "b1")]}])
                     (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned (create-card "Nightblade" :owner-id "p1")})
                     (get-card-from-hand "p1" "b1")
-                    (get-attack))
+                    (get :attack))
                 2)
            (is= (-> (create-game [{:hand [(create-card "Blubber Baron" :id "b1")]}])
                     (listener-effect-in-hand :states-summon-minion-in-hand {:card-minion-summoned (create-card "Nightblade" :owner-id "p1")})

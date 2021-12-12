@@ -3,6 +3,7 @@
                                          create-game
                                          create-minion
                                          enough-mana?
+                                         get-attack
                                          get-attackable-entities-id
                                          get-card-from-hand
                                          get-hand
@@ -48,9 +49,9 @@
            (let [state (create-game [{:hand           [(create-card "Bananas" :id "b")]
                                       :board-entities [(create-minion "Nightblade" :id "n2")]}])]
              (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "b")) ["n2"]))
-           (let [state (create-game [{:hand           [(create-card "Bananas" :id "b")]}])]
+           (let [state (create-game [{:hand [(create-card "Bananas" :id "b")]}])]
              (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "b")) []))
-           (let [state (create-game [{:hand           [(create-card "Earthen Ring Farseer" :id "e")]}])]
+           (let [state (create-game [{:hand [(create-card "Earthen Ring Farseer" :id "e")]}])]
              (is= (get-valid-targets-from-card state (get-card-from-hand state "p1" "e")) ["h1" "h2"]))
            )}
   [state card]
@@ -64,18 +65,7 @@
            (let [state (create-game [{:hand           [(create-card "Nightblade" :id "n")]
                                       :board-entities [(create-minion "Nightblade" :id "n2")]}])
                  card (get-card-from-hand state "p1" "n")]
-             (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card))))
-           (let [state (create-game [{:hand           [(create-card "Argent Protector" :id "n")]
-                                      :board-entities [(create-minion "Nightblade" :id "n2")]}])
-                 card (get-card-from-hand state "p1" "n")]
-             (card-in-hand->client-card-in-hand state card))
-           (let [state (create-game [{:hand           [(create-card "Argent Protector" :id "n")]}])
-                 card (get-card-from-hand state "p1" "n")]
-             (card-in-hand->client-card-in-hand state card))
-           (let [state (create-game [{:hand           [(create-card "Whirlwind" :id "w")]}
-                                     {:board-entities [(create-minion "Defender")]}])
-                 card (get-card-from-hand state "p1" "w")]
-             (card-in-hand->client-card-in-hand state card)))}
+             (is (s/valid? :firestone.client.kth.spec/card-in-hand (card-in-hand->client-card-in-hand state card)))))}
   [state card]
   {:attack             (or (:attack card) 0)
    :description        (or (:description (get-definition (:name card))) " ")
@@ -84,12 +74,12 @@
    :id                 (:id card)
    :name               (:name card)
    :mana-cost          (let [amount-of-mana-wraiths-on-board (reduce (fn [counter player]
-                                                                  (+ counter (count
-                                                                               (filter (fn [x]
-                                                                                         (= (:name x) "Mana Wraith"))
-                                                                                       (get-in state [:players player :board-entities])))))
-                                                                0
-                                                                ["p1" "p2"])
+                                                                       (+ counter (count
+                                                                                    (filter (fn [x]
+                                                                                              (= (:name x) "Mana Wraith"))
+                                                                                            (get-in state [:players player :board-entities])))))
+                                                                     0
+                                                                     ["p1" "p2"])
                              mana (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))]
                          (if (= (:name card) "Mountain Giant")
                            (if (< (- (+ mana amount-of-mana-wraiths-on-board) (count (get-hand state (:owner-id card)))) 0)
@@ -115,7 +105,7 @@
                  minion (get-minion state "n")]
              (is (s/valid? :firestone.client.kth.spec/minion (minion->client-minion state minion)))))}
   [state minion]
-  {:attack           (get-in minion [:attack] 0)
+  {:attack           (get-attack state minion)
    :can-attack       (can-attack? state minion)
    :description      (:description (get-definition (:name minion)))
    :entity-type      :minion
