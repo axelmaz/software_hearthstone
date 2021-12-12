@@ -184,10 +184,13 @@
     :type                 :minion
     :states               [:effect]
     :states-summon-minion (fn [state other-args]
-                            (let [owner-id-play-effect (:owner-id (:minion-play-effect other-args))
+                            (let [minion-play-effect (:minion-play-effect other-args)
+                                  minion-play-effect-id (:id minion-play-effect)
+                                  owner-id-play-effect (:owner-id minion-play-effect)
+                                  minion-summoned-id (:id (:minion-summoned other-args))
                                   owner-id-summoned (:player-summon other-args)
                                   enemy-id (get-opposing-player-id state owner-id-play-effect)]
-                              (if (= owner-id-play-effect owner-id-summoned)
+                              (if (and (= owner-id-play-effect owner-id-summoned) (not (= minion-play-effect-id minion-summoned-id)))
                                 (damage-random state 1 enemy-id)
                                 state)))
     }
