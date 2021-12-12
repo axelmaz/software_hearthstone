@@ -10,45 +10,21 @@
                                     summon-minion
                                     cast-spell
                                     use-battlecry]]
-            [firestone.core-api :as core-api]
             [firestone.construct :refer [add-card-to-hand
                                          add-minion-to-board
                                          card-to-minion
                                          create-card
                                          create-game
-                                         create-hero
                                          create-minion
-                                         create-power
-                                         enough-mana?
-                                         get-armor
-                                         get-attack
-                                         get-card-from-hand
-                                         get-character
-                                         get-deck
-                                         get-hand
                                          get-health
-                                         get-hero-id-from-player-id
-                                         get-heroes
-                                         get-mana
-                                         get-minion
-                                         get-minions
-                                         get-opposing-player-id
-                                         get-player-id-from-heroe-id
-                                         get-player-id-in-turn
-                                         get-players
-                                         get-power
-                                         get-random-character
-                                         get-taunt-minions-id
-                                         get-total-health
-                                         is-effect?
-                                         listener-effect
-                                         listener-effect-in-hand
-                                         remove-card-from-deck
-                                         remove-effect
-                                         remove-minion
                                          set-effect
-                                         update-minion
-                                         update-minions]]))
+                                         is-effect?
+                                         get-armor
+                                         get-minions
+                                         create-hero
+                                         get-hand
+                                         get-card-from-hand
+                                         get-attack]]))
 
 (defn test-valid-attack?
   {:test (fn []
