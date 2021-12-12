@@ -6,12 +6,14 @@
             [firestone.definitions :refer [get-definition]]
             [firestone.construct :refer [add-card-to-hand
                                          add-minion-to-board
+                                         add-secret
                                          card-to-minion
                                          create-card
                                          create-game
                                          create-hero
                                          create-minion
                                          create-power
+                                         create-secret
                                          enough-mana?
                                          get-armor
                                          get-attack
@@ -31,6 +33,7 @@
                                          get-players
                                          get-power
                                          get-random-character
+                                         get-secrets
                                          get-taunt-minions-id
                                          get-total-health
                                          is-effect?
@@ -39,6 +42,7 @@
                                          remove-card-from-deck
                                          remove-effect
                                          remove-minion
+                                         remove-secret
                                          set-effect
                                          update-minion
                                          update-minions]]))
@@ -864,3 +868,32 @@
   (let [power (get-power state player-id)
         max-number-use 1]
     (and (enough-mana? state player-id power) (< (:used-this-turn power) max-number-use) (= player-id (get-player-id-in-turn state)))))
+
+
+(defn secret-effect
+  "Apply the effect of the secret which correspond to the event"
+  {:test (fn []
+           ; The effect of the secret is applied
+           (is= (-> (create-game)
+                    (add-secret "p2" (create-secret "Explosive Trap"))
+                    (secret-effect :secret-attack {:attacked-character (create-hero "Jaina Proudmoore" :id "h2")})
+                    (get-health "h1"))
+                28)
+           ;But just once and then disapear
+           (is= (-> (create-game)
+                    (add-secret "p2" (create-secret "Explosive Trap"))
+                    (secret-effect :secret-attack {:attacked-character (create-hero "Jaina Proudmoore" :id "h2")})
+                    (get-secrets "p2"))
+                []))}
+  ([state event other-args]
+   (let [secrets (get-secrets state)
+         function-of-the-effect (fn [a secret]
+                                  (let [function-result (event (get-definition (:name secret)))]
+                                    (if (and (some? function-result))
+                                      (-> a
+                                          (function-result (assoc other-args :secret-played secret))
+                                          (remove-secret (:owner-id secret) (:id secret)))
+                                      a)))]
+     (reduce function-of-the-effect state secrets)))
+  ([state event]
+   (listener-effect state event {})))

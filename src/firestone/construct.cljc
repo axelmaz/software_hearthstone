@@ -122,6 +122,22 @@
       minion
       (apply assoc minion kvs))))
 
+(defn create-secret
+  "Creates a secret from its definition by the given secret name. The additional key-values will override the default values."
+  {:test (fn []
+           (is= (create-secret "Explosive Trap"
+                               :id "n")
+                {:entity-type :secret
+                 :name        "Explosive Trap"
+                 :id          "n"}))}
+  [name & kvs]
+  (let [definition (get-definition name)                    ; Will be used later
+        minion {:entity-type :secret
+                :name        name}]
+    (if (empty? kvs)
+      minion
+      (apply assoc minion kvs))))
+
 
 (defn create-empty-state
   "Creates an empty state with the given heroes."
@@ -1100,7 +1116,7 @@
                                                                        (get-in state [:players player :board-entities])))))
                                                 0
                                                 ["p1" "p2"])]
-    (>= (get-mana state player-id) (or (+ (:mana-cost entity) amount-of-mana-wraiths-on-board) (+ ((get-definition (:name entity)) :mana-cost) amount-of-mana-wraiths-on-board) ))))
+    (>= (get-mana state player-id) (or (+ (:mana-cost entity) amount-of-mana-wraiths-on-board) (+ ((get-definition (:name entity)) :mana-cost) amount-of-mana-wraiths-on-board)))))
 
 (defn decrease-mana
   {:test (fn []
@@ -1126,13 +1142,13 @@
    }
   [state player-id card]
   (let [amount-of-mana-wraiths-on-board (reduce (fn [counter player]
-                                                   (+ counter (count
-                                                                (filter (fn [x]
-                                                                          (= (:name x) "Mana Wraith"))
-                                                                        (get-in state [:players player :board-entities])))))
-                                                 0
-                                                 ["p1" "p2"])]
-  (-> state (decrease-mana player-id (+ (card :mana-cost) amount-of-mana-wraiths-on-board)))))
+                                                  (+ counter (count
+                                                               (filter (fn [x]
+                                                                         (= (:name x) "Mana Wraith"))
+                                                                       (get-in state [:players player :board-entities])))))
+                                                0
+                                                ["p1" "p2"])]
+    (-> state (decrease-mana player-id (+ (card :mana-cost) amount-of-mana-wraiths-on-board)))))
 
 (defn get-owner-id
   "give the id of the owner of the character"
@@ -1454,3 +1470,69 @@
     (replace-card-in-hand state owner-id (if (fn? function-or-value)
                                            (update card key function-or-value)
                                            (assoc card key function-or-value)))))
+
+(defn get-secrets
+  "Returns the active secrets for the given player-id or for both players."
+  {:test (fn []
+           (is= (-> (create-empty-state)
+                    (get-secrets "p1"))
+                [])
+           (is= (-> (create-empty-state)
+                    (get-secrets))
+                [])
+           (is= (as-> (create-empty-state) $
+                      (assoc-in $ [:players "p1" :active-secrets] [(create-secret "Explosive Trap")])
+                      (get-secrets $ "p1")
+                      (map :name $))
+                ["Explosive Trap"]))}
+  ([state player-id]
+   (or (:active-secrets (get-player state player-id)) []))
+  ([state]
+   (->> (:players state)
+        (vals)
+        (map :active-secrets)
+        (apply concat))))
+
+(defn add-secret
+  "Add the secret to the active secrets of given player-id."
+  {:test (fn []
+           (is= (as-> (create-empty-state) $
+                      (add-secret $ "p1" (create-secret "Explosive Trap"))
+                      (get-secrets $ "p1")
+                      (map :name $))
+                ["Explosive Trap"])
+           (is= (as-> (create-empty-state) $
+                      (add-secret $ "p1" (create-secret "Explosive Trap"))
+                      (add-secret $ "p1" (create-secret "Explosive Trap"))
+                      (get-secrets $ "p1")
+                      (map :name $))
+                ["Explosive Trap" "Explosive Trap"]))}
+  ([state player-id secret]
+   (let [[state id] (if (contains? secret :id)
+                      [state (:id secret)]
+                      (let [[state value] (generate-id state)]
+                        [state (str "s" value)]))
+         [state time-id] (generate-time-id state)
+         new-secret (assoc secret :owner-id player-id :id id :added-to-board-time-id time-id)]
+     (if (empty? (get-secrets state player-id))
+       (assoc-in state [:players player-id :active-secrets] [new-secret])
+       (update-in state [:players player-id :active-secrets] conj new-secret)))))
+
+(defn remove-secret
+  "Remove the secret to the active secrets of given player-id."
+  {:test (fn []
+           (is= (as-> (create-empty-state) $
+                      (add-secret $ "p1" (create-secret "Explosive Trap" :id "s1"))
+                      (remove-secret $ "p1" "s1")
+                      (get-secrets $ "p1"))
+                [])
+           (is= (as-> (create-empty-state) $
+                      (add-secret $ "p1" (create-secret "Explosive Trap" :id "s1"))
+                      (add-secret $ "p1" (create-secret "Explosive Trap"))
+                      (remove-secret $ "p1" "s1")
+                      (get-secrets $ "p1")
+                      (map :name $))
+                ["Explosive Trap"]))}
+  [state player-id secret-id]
+  (update-in state [:players player-id :active-secrets]
+             (fn [active-secrets] (remove (fn [act-secret] (= secret-id (:id act-secret))) active-secrets))))

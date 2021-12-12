@@ -4,10 +4,12 @@
             [firestone.construct :refer [add-card-to-deck
                                          add-card-to-hand
                                          add-minion-to-board
+                                         add-secret
                                          create-card
                                          create-game
                                          create-hero
                                          create-minion
+                                         create-secret
                                          decrease-mana
                                          decrease-mana-with-card
                                          enough-mana?
@@ -33,6 +35,7 @@
                                     deal-damages
                                     draw-card
                                     start-turn-reset
+                                    secret-effect
                                     summon-minion
                                     use-battlecry
                                     valid-attack?
@@ -244,6 +247,12 @@
                     (attack-minion "p1" "Ne" "h2")
                     (get-health "h2"))
                 29)
+           ;The active secret should be played
+           (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}])
+                    (add-secret "p2" (create-secret "Explosive Trap"))
+                    (attack-minion "p1" "n1" "h2")
+                    (get-health "h1"))
+                28)
            ; Should not be possible to attack twice
            (error? (-> (create-game)
                        (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
@@ -252,7 +261,10 @@
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
-  (let [minion-attack (get-character state minion-attack-id)
+  (let [old-minion-attack (get-character state minion-attack-id)
+        old-minion-defense (get-character state minion-defense-id)
+        state (secret-effect state :secret-attack {:attacked-character old-minion-defense})
+        minion-attack (get-character state minion-attack-id)
         minion-defense (get-character state minion-defense-id)
         minion-list (sort-by :added-to-board-time-id [minion-attack minion-defense])
         other-minion-function {(:id minion-attack)  minion-defense
@@ -261,36 +273,13 @@
                                 (let [other-minion (other-minion-function (:id minion))
                                       minion-attack (or (get-attack minion) 0)]
                                   (deal-damages state (:id other-minion) minion-attack {:minion-attacker minion})))]
-    (as-> state $
-          (reduce deal-damage-to-minion $ minion-list)
-          (if (some? (get-minion $ minion-attack-id))
-            (update-minion $ minion-attack-id :attacks-performed-this-turn 1)
-            $))))
-
-(defn attack-hero
-  {:test
-   (fn []
-     ;When we attack the hero, it should loose health
-     (is= (-> (create-game)
-              (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-              (attack-hero "p1" "ne")
-              (get-health "h2"))
-          29)
-     ; Should not be possible to attack twice
-     (error? (-> (create-game)
-                 (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                 (attack-hero "p1" "ne")
-                 (attack-hero "p1" "ne")
-                 ))
-     )}
-  [state player-id minion-attack-id]
-  (let [attacked-player-id (if (= player-id "p1") "p2" "p1")
-        value-attack-attack (get-attack state minion-attack-id)]
-    (when-not (valid-attack? state player-id minion-attack-id (get-hero-id-from-player-id state attacked-player-id))
-      (error "This attack is not possible"))
-    (-> state
-        (deal-damages attacked-player-id value-attack-attack {:minion-attacker-id minion-attack-id})
-        (update-minion minion-attack-id :attacks-performed-this-turn 1))))
+    (if (nil? (and minion-attack minion-defense))
+      state
+      (as-> state $
+            (reduce deal-damage-to-minion $ minion-list)
+            (if (some? (get-minion $ minion-attack-id))
+              (update-minion $ minion-attack-id :attacks-performed-this-turn 1)
+              $)))))
 
 
 (defn use-hero-power
