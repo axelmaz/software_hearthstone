@@ -8,12 +8,15 @@
                                     draw-for-each-damaged
                                     give-minion-plus-attack-and-health
                                     restore-health
+                                    summon-minion
                                     update-armor
                                     update-attack]]
             [firestone.construct :refer [add-card-to-hand
                                          add-card-to-deck
+                                         add-secret
                                          add-specific-cards-to-hand
                                          create-card
+                                         create-secret
                                          friendly-when-not-on-board?
                                          friendly?
                                          get-armor
@@ -33,6 +36,7 @@
                                          shuffle-deck
                                          swap-minion-of-player
                                          update-card
+                                         update-id-character
                                          update-minion]]
             [ysera.random :refer [get-random-int]]))
 
@@ -52,10 +56,10 @@
                     (let [played-card (:played-card other-args)
                           target-minion-id (:target-id other-args)]
                       (if (some? target-minion-id)
-                      (if-not (friendly-when-not-on-board? state (:owner-id played-card) target-minion-id)
-                        (error "invalid target")
-                        (set-effect state target-minion-id :divine-shield))
-                      state)))
+                        (if-not (friendly-when-not-on-board? state (:owner-id played-card) target-minion-id)
+                          (error "invalid target")
+                          (set-effect state target-minion-id :divine-shield))
+                        state)))
     :valid-target (fn [state card]
                     (vec (map :id (get-minions state (:owner-id card)))))}
 
@@ -141,19 +145,19 @@
     :rarity    :common}
 
    "Earthen Ring Farseer"
-   {:attack      3
-    :description "Battlecry: Restore 3 Health."
-    :health      3
-    :mana-cost   3
-    :name        "Earthen Ring Farseer"
-    :rarity      :common
-    :set         :classic
-    :type        :minion
-    :battlecry   (fn [state other-args]
-                   (let [target-id (:target-id other-args)]
-                     (restore-health state target-id 3)))
-   :valid-target (fn [state card]
-                   (conj (vec (map :id (get-minions state))) (get-hero-id-from-player-id state "p1") (get-hero-id-from-player-id state "p2")))}
+   {:attack       3
+    :description  "Battlecry: Restore 3 Health."
+    :health       3
+    :mana-cost    3
+    :name         "Earthen Ring Farseer"
+    :rarity       :common
+    :set          :classic
+    :type         :minion
+    :battlecry    (fn [state other-args]
+                    (let [target-id (:target-id other-args)]
+                      (restore-health state target-id 3)))
+    :valid-target (fn [state card]
+                    (conj (vec (map :id (get-minions state))) (get-hero-id-from-player-id state "p1") (get-hero-id-from-player-id state "p2")))}
 
    "King Mukla"
    {:attack      5
@@ -180,10 +184,13 @@
     :type                 :minion
     :states               [:effect]
     :states-summon-minion (fn [state other-args]
-                            (let [owner-id-play-effect (:owner-id (:minion-play-effect other-args))
+                            (let [minion-play-effect (:minion-play-effect other-args)
+                                  minion-play-effect-id (:id minion-play-effect)
+                                  owner-id-play-effect (:owner-id minion-play-effect)
+                                  minion-summoned-id (:id (:minion-summoned other-args))
                                   owner-id-summoned (:player-summon other-args)
                                   enemy-id (get-opposing-player-id state owner-id-play-effect)]
-                              (if (= owner-id-play-effect owner-id-summoned)
+                              (if (and (= owner-id-play-effect owner-id-summoned) (not (= minion-play-effect-id minion-summoned-id)))
                                 (damage-random state 1 enemy-id)
                                 state)))
     }
@@ -238,9 +245,12 @@
     :type            :minion
     :states          [:cant-attack :effect]
     :states-end-turn (fn [state other-args]
-                       (let [minion-play-effect-id (:id (:minion-play-effect other-args))
-                             enemy-id (get-opposing-player-id state (get-owner-id state minion-play-effect-id))]
-                         (damage-random state 8 enemy-id)))}
+                       (let [minion-play-effect (:minion-play-effect other-args)
+                             minion-owner-id (:owner-id minion-play-effect)
+                             enemy-id (get-opposing-player-id state minion-owner-id)]
+                         (if (= minion-owner-id (get-player-id-in-turn state))
+                           (damage-random state 8 enemy-id)
+                           state)))}
 
    "Shield Slam"
    {:class        :warrior
@@ -256,8 +266,8 @@
                           owner-id (get-in card [:owner-id])
                           number-armor (get-armor state (get-hero-id-from-player-id state owner-id))]
                       (deal-damages state target-minion-id number-armor {})))
-   :valid-target (fn [state card]
-                   (vec (map :id (get-minions state))))}
+    :valid-target (fn [state card]
+                    (vec (map :id (get-minions state))))}
 
    "Snake"
    {:name      "Snake"
@@ -321,34 +331,34 @@
                          (shuffle-deck owner-id))))}
 
    "Far Sight"
-   {:class       :shaman
-    :description "Draw a card. That card costs (3) less."
-    :mana-cost   3
-    :name        "Far Sight"
-    :rarity      :epic
-    :set         :classic
-    :type        :spell
+   {:class        :shaman
+    :description  "Draw a card. That card costs (3) less."
+    :mana-cost    3
+    :name         "Far Sight"
+    :rarity       :epic
+    :set          :classic
+    :type         :spell
     :states-spell (fn [state other-args]
                     (let [player-id-in-turn (get-player-id-in-turn state)
                           card (nth (get-deck state player-id-in-turn) 0)
                           card-id (:id card)
                           card-mana (:mana-cost card)]
                       (as-> state $
-                      (draw-card $ player-id-in-turn)
-                      (update-card $ player-id-in-turn card-id :mana-cost
-                                     (if (< card-mana 3)
-                                       0
-                                       (- card-mana 3))))))}
+                            (draw-card $ player-id-in-turn)
+                            (update-card $ player-id-in-turn card-id :mana-cost
+                                         (if (< card-mana 3)
+                                           0
+                                           (- card-mana 3))))))}
 
    "Abusive Sergeant"
-   {:attack      1
-    :description "Battlecry: Give a minion +2 Attack this turn."
-    :health      1
-    :mana-cost   1
-    :name        "Abusive Sergeant"
-    :rarity      :common
-    :set         :classic
-    :type        :minion
+   {:attack       1
+    :description  "Battlecry: Give a minion +2 Attack this turn."
+    :health       1
+    :mana-cost    1
+    :name         "Abusive Sergeant"
+    :rarity       :common
+    :set          :classic
+    :type         :minion
     :battlecry    (fn [state other-args]
                     (let [played-card (:played-card other-args)
                           target-minion-id (:target-id other-args)]
@@ -372,13 +382,26 @@
     :states      [:poisonous]}
 
    "Explosive Trap"
-   {:class       :hunter
-    :description "Secret: When your hero is attacked deal 2 damage to all enemies."
-    :mana-cost   2
-    :name        "Explosive Trap"
-    :rarity      :common
-    :set         :classic
-    :type        :spell}
+   {:class         :hunter
+    :description   "Secret: When your hero is attacked deal 2 damage to all enemies."
+    :mana-cost     2
+    :name          "Explosive Trap"
+    :rarity        :common
+    :set           :classic
+    :type          :spell
+    :states-spell  (fn [state other-args]
+                     (let [card (:spell-played other-args)
+                           player-id (:owner-id card)]
+                       (add-secret state player-id (create-secret (:name card)))))
+    :secret-attack (fn [state other-args]
+                     (let [card (:secret-played other-args)
+                           attacked-character (:attacked-character other-args)
+                           secret-owner-id (:owner-id card)
+                           attacked-owner-id (or (:owner-id attacked-character) (get-owner-id state (:id attacked-character)))]
+                       (if (and (= :hero (:entity-type attacked-character)) (= secret-owner-id attacked-owner-id))
+                         (-> (reduce (fn [s minion] (deal-damages s (:id minion) 2 {})) state (get-minions state (get-opposing-player-id state secret-owner-id)))
+                             (deal-damages (get-opposing-player-id state secret-owner-id) 2 {}))
+                         state)))}
 
    "Steward of Darkshire"
    {:description          "Whenever you summon a 1-Health minion, give it Divine Shield."
@@ -483,13 +506,28 @@
                        (swap-minion-of-player state (:id random-enemy-minion)))))}
 
    "Noble Sacrifice"
-   {:class       :paladin
-    :description "Secret: When an enemy attacks summon a 2/1 Defender as the new target."
-    :mana-cost   1
-    :name        "Noble Sacrifice"
-    :rarity      :common
-    :set         :classic
-    :type        :spell}
+   {:class         :paladin
+    :description   "Secret: When an enemy attacks summon a 2/1 Defender as the new target."
+    :mana-cost     1
+    :name          "Noble Sacrifice"
+    :rarity        :common
+    :set           :classic
+    :type          :spell
+    :states-spell  (fn [state other-args]
+                     (let [card (:spell-played other-args)
+                           player-id (:owner-id card)]
+                       (add-secret state player-id (create-secret (:name card)))))
+    :secret-attack (fn [state other-args]
+                     (let [card (:secret-played other-args)
+                           attacked-character (:attacked-character other-args)
+                           attacked-character-id (:id attacked-character)
+                           secret-owner-id (:owner-id card)
+                           attacked-owner-id (or (:owner-id attacked-character) (get-owner-id state (:id attacked-character)))]
+                       (if-not (= secret-owner-id attacked-owner-id)
+                         state
+                         (-> state
+                             (update-id-character attacked-character-id)
+                             (summon-minion secret-owner-id (create-card "Defender" :id attacked-character-id) (inc (count (get-minions state secret-owner-id))))))))}
 
    "Mountain Giant"
    {:attack      8
