@@ -43,34 +43,18 @@
 
 (defn end-turn
   {:test (fn []
+           ; Change the player in turn
            (is= (-> (create-game)
                     (end-turn "p1")
                     (get-player-id-in-turn))
                 "p2")
-           (is= (-> (create-game)
-                    (end-turn "p1")
-                    (end-turn "p2")
-                    (get-player-id-in-turn))
-                "p1")
-           (error? (-> (create-game)
-                       (end-turn "p2")))
+           ; Make the player draw
            (is= (-> (create-game)
                     (add-card-to-deck "p2" "Nightblade")
                     (end-turn "p1")
                     (get-card-from-hand "p2" "c1")
                     (:name))
-                "Nightblade")
-           (is= (-> (create-game [{:mana 6}])
-                    (end-turn "p1")
-                    (end-turn "p2")
-                    (get-mana "p1"))
-                10)
-           (is= (-> (create-game [{}
-                                  {:board-entities [(create-card "Nightblade" :id "n1" :attacks-performed-this-turn 1)]}])
-                    (end-turn "p1")
-                    (get-minion "n1")
-                    (:attacks-performed-this-turn))
-                0))}
+                "Nightblade"))}
   [state player-id]
   (when-not (= (get-player-id-in-turn state) player-id)
     (error "The player with id " player-id " is not in turn."))
@@ -85,17 +69,6 @@
 
 (defn play-minion-card
   {:test (fn []
-           ; Shouldn't be able to play a card when not in turn
-           (error? (-> (create-game [{:hand [(create-card "Defender" :id "d")]}]
-                                    :player-id-in-turn "p2")
-                       (play-minion-card "p1" "d" 0)))
-           ; Shouldn't not be able to play cards not in our hand
-           (error? (-> (create-game)
-                       (play-minion-card "p1" "n" 0)))
-           ; Shouldn't be able to play a card if not enough mana
-           (error? (-> (create-game [{:hand [(create-card "Nightblade" :id "n")]
-                                      :mana 3}])
-                       (play-minion-card "p1" "n" 0)))
            ; The card should be removed from hand
            (is (-> (create-game [{:hand [(create-card "Defender" :id "d")]}])
                    (play-minion-card "p1" "d" 0)
@@ -105,22 +78,7 @@
            (is-not (-> (create-game [{:hand [(create-card "Defender" :id "d")]}])
                        (play-minion-card "p1" "d" 0)
                        (get-minions "p1")
-                       (empty?)))
-           ; The mana of the player should decrease by the mana cost of the card
-           (is= (-> (create-game [{:hand [(create-card "Defender" :id "d")]
-                                   :mana 9}])
-                    (play-minion-card "p1" "d" 0)
-                    (get-mana "p1"))
-                8)
-           ;The battlecry of the card (if there is one) is applied
-           (is= (-> (create-game [{:deck [(create-card "Nightblade" :id "n")]
-                                   :hand [(create-card "Novice Engineer" :id "ne")]}])
-                    (play-minion-card "p1" "ne" 0)
-                    (get-hand "p1")
-                    (first)
-                    (:name)
-                    )
-                "Nightblade"))}
+                       (empty?))))}
   ([state player-id card-id position]
    (when-not (= (get-player-id-in-turn state) player-id)
      (error "The player with id " player-id " is not in turn."))
@@ -151,29 +109,12 @@
 
 (defn play-spell-card
   {:test (fn []
-           ; Shouldn't be able to play a card when not in turn
-           (error? (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]}]
-                                    :player-id-in-turn "p2")
-                       (play-spell-card "p1" "d")))
-           ; Shouldn't not be able to play cards not in our hand
-           (error? (-> (create-game)
-                       (play-spell-card "p1" "n")))
-           ; Shouldn't be able to play a card if not enough mana
-           (error? (-> (create-game [{:hand [(create-card "Battle Rage" :id "n")]
-                                      :mana 1}])
-                       (play-spell-card "p1" "n")))
            ; The card should be removed from hand
            (is (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]}])
                    (play-spell-card "p1" "d")
                    (get-hand "p1")
                    (empty?)))
-           ; The mana of the player should decrease by the mana cost of the card
-           (is= (-> (create-game [{:hand [(create-card "Battle Rage" :id "d")]
-                                   :mana 9}])
-                    (play-spell-card "p1" "d")
-                    (get-mana "p1"))
-                7)
-           ;The effect of the spell (if there is one) is applied
+           ;The effect of the spell is applied : the effect of battle rage is to draw for each damaged minion
            (is= (-> (create-game [{:board-entities [(create-card "Nightblade" :id "n" :damage-taken 1)]
                                    :hand           [(create-card "Battle Rage" :id "br")]
                                    :deck           [(create-card "Nightblade" :id "n2")]}])
@@ -223,41 +164,12 @@
                     (attack-minion "p1" "ne" "nb")
                     (get-health "ne"))
                 2)
-           ;The attack has to be invalid : the minion is sleepy
-           (error? (-> (create-game)
-                       (summon-minion "p1" (create-card "Novice Engineer" :id "ne") 0)
-                       (summon-minion "p2" (create-card "Nightblade" :id "nb") 0)
-                       (attack-minion "p2" "ne" "nb")))
-           ;The attacker could not attack twice a tour
-           (error? (-> (create-game)
-                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                       (add-minion-to-board "p2" (create-minion "Nightblade" :id "nb") 0)
-                       (attack-minion "p1" "ne" "nb")
-                       (attack-minion "p1" "ne" "nb")))
-           ; If a minion is attacked by a poisonous it should be deleted from the board.
-           (is= (-> (create-game [{:board-entities [(create-minion "Maexxna" :id "m")]}
-                                  {:board-entities [(create-minion "Nightblade" :id "n1")]}])
-                    (attack-minion "p1" "m" "n1")
-                    (get-minions "p2")
-                    (count))
-                0)
            ;When we attack the hero, it should loose health
            (is= (-> (create-game)
                     (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "Ne") 0)
                     (attack-minion "p1" "Ne" "h2")
                     (get-health "h2"))
-                29)
-           ;The active secret should be played
-           (is= (-> (create-game [{:board-entities [(create-minion "Nightblade" :id "n1")]}])
-                    (add-secret "p2" (create-secret "Explosive Trap"))
-                    (attack-minion "p1" "n1" "h2")
-                    (get-health "h1"))
-                28)
-           ; Should not be possible to attack twice
-           (error? (-> (create-game)
-                       (add-minion-to-board "p1" (create-minion "Novice Engineer" :id "ne") 0)
-                       (attack-minion "p1" "ne" "h2")
-                       (attack-minion "p1" "ne" "h2"))))}
+                29))}
   [state player-id minion-attack-id minion-defense-id]
   (when-not (valid-attack? state player-id minion-attack-id minion-defense-id)
     (error "This attack is not possible"))
@@ -288,21 +200,6 @@
   - handle the target or not target powers
   - use functions instead of all in this one"
   {:test (fn []
-           ; Shouldn't be able to use the power when not in turn
-           (error? (-> (create-game :player-id-in-turn "p2")
-                       (use-hero-power "p1")))
-           ; Shouldn't be able to use the power if not enough mana
-           (error? (-> (create-game [{:mana 1}])
-                       (use-hero-power "p1")))
-           ; Shouldn't be able to use the power twice a tour
-           (error? (-> (create-game)
-                       (use-hero-power "p1")
-                       (use-hero-power "p1")))
-           ; The mana of the player should decrease by the mana cost of the card
-           (is= (-> (create-game [{:hero "Garrosh Hellscream"}])
-                    (use-hero-power "p1")
-                    (get-mana "p1"))
-                8)
            ;The effect of the power is applied
            (is= (-> (create-game [{:hero "Garrosh Hellscream"}])
                     (use-hero-power "p1")
@@ -313,11 +210,6 @@
                     (use-hero-power "p1" "h2")
                     (get-health "h2"))
                 29)
-           ;The inspire effect is applied ex Lowly Squire gain +1 attack
-           (is= (-> (create-game [{:board-entities [(create-minion "Lowly Squire" :id "l")]}])
-                    (use-hero-power "p1" "h2")
-                    (get-attack "l"))
-                2)
            )}
   ([state player-id target-id]
    (when-not (= (get-player-id-in-turn state) player-id)

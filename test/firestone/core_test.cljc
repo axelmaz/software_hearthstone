@@ -1,15 +1,15 @@
 (ns firestone.core-test
   (:require [ysera.test :refer [is-not is= error?]]
             [clojure.test :refer [deftest is testing]]
-            [firestone.core :refer [valid-attack?
-                                    deal-damages-to-minion
-                                    deal-damages-to-heroe-by-player-id
-                                    deal-damages-to-heroe-by-heroe-id
+            [firestone.core :refer [cast-spell
                                     deal-damages
+                                    deal-damages-to-heroe-by-heroe-id
+                                    deal-damages-to-heroe-by-player-id
+                                    deal-damages-to-minion
                                     draw-for-each-damaged
                                     summon-minion
-                                    cast-spell
-                                    use-battlecry]]
+                                    use-battlecry
+                                    valid-attack?]]
             [firestone.construct :refer [add-card-to-hand
                                          add-minion-to-board
                                          card-to-minion
