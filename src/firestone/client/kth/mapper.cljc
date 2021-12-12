@@ -5,6 +5,7 @@
                                          enough-mana?
                                          get-attackable-entities-id
                                          get-card-from-hand
+                                         get-hand
                                          get-health
                                          get-minion
                                          get-minions
@@ -90,7 +91,11 @@
                                                                 0
                                                                 ["p1" "p2"])
                              mana (get-in card [:mana-cost] (:mana-cost (get-definition (:name card))))]
-                         (+ mana amount-of-mana-wraiths-on-board))
+                         (if (= (:name card) "Mountain Giant")
+                           (if (< (- (+ mana amount-of-mana-wraiths-on-board) (count (get-hand state (:owner-id card)))) 0)
+                             0
+                             (- (+ mana amount-of-mana-wraiths-on-board) (count (get-hand state (:owner-id card)))))
+                           (+ mana amount-of-mana-wraiths-on-board)))
    :original-attack    (or (:attack (get-definition (:name card))) 0)
    :original-health    (or (:health (get-definition (:name card))) 0)
    :original-mana-cost (:mana-cost (get-definition (:name card)))

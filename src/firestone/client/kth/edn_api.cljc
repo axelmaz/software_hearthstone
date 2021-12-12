@@ -58,9 +58,12 @@
                       ; Create secrets
                       (create-game [{:mana           10
                                      :board-entities []
-                                     :hand           [(create-card "Ragnaros the Firelord")
-                                                      (create-card "Explosive Trap")
-                                                      (create-card "Noble Sacrifice")]
+
+                                     :hand           [(create-card "Blubber Baron")
+                                                      (create-card "Mana Wraith")
+                                                      (create-card "Lowly Squire")
+                                                      (create-card "Sunwalker")
+                                                      (create-card "Mountain Giant")]
                                      :deck           [(create-card "Knife Juggler")
                                                       (create-card "Nightblade")]
                                      :hero           (create-hero "Jaina Proudmoore" :armor 10 :health 25)}
